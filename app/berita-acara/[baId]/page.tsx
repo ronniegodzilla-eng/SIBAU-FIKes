@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { formatTanggalIndonesia } from '@/lib/tanggal';
-import type { BeritaAcara, JadwalUjian } from '@/lib/types';
+import TombolUnduhPDF from '@/components/pdf/TombolUnduhPDF';
+import type { BeritaAcara, JadwalUjian, Periode, SettingsApp } from '@/lib/types';
 
 export default function DetailBeritaAcaraPage({
   params,
@@ -13,6 +14,8 @@ export default function DetailBeritaAcaraPage({
 }) {
   const [ba, setBa] = useState<BeritaAcara | null | undefined>(undefined);
   const [jadwal, setJadwal] = useState<JadwalUjian | null>(null);
+  const [periode, setPeriode] = useState<Periode | null>(null);
+  const [settings, setSettings] = useState<SettingsApp | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -27,8 +30,23 @@ export default function DetailBeritaAcaraPage({
         setBa(baData);
 
         const jadwalSnap = await getDoc(doc(db, 'jadwal_ujian', baData.jadwalId));
+        let periodeId: string | null = null;
         if (jadwalSnap.exists()) {
-          setJadwal({ id: jadwalSnap.id, ...jadwalSnap.data() } as unknown as JadwalUjian);
+          const jadwalData = { id: jadwalSnap.id, ...jadwalSnap.data() } as unknown as JadwalUjian;
+          setJadwal(jadwalData);
+          periodeId = jadwalData.periodeId;
+        }
+
+        if (periodeId) {
+          const periodeSnap = await getDoc(doc(db, 'periode', periodeId));
+          if (periodeSnap.exists()) {
+            setPeriode({ id: periodeSnap.id, ...periodeSnap.data() } as unknown as Periode);
+          }
+        }
+
+        const settingsSnap = await getDoc(doc(db, 'settings', 'app'));
+        if (settingsSnap.exists()) {
+          setSettings(settingsSnap.data() as SettingsApp);
         }
       } catch {
         setError('Gagal memuat berita acara. Periksa koneksi internet Anda.');
@@ -142,13 +160,18 @@ export default function DetailBeritaAcaraPage({
           </div>
         )}
 
-        <button
-          disabled
-          title="Fitur unduh PDF akan tersedia setelah modul PDF selesai (M5)"
-          className="mt-5 min-h-[44px] w-full rounded-lg bg-gray-200 px-4 text-sm font-medium text-gray-500"
-        >
-          Unduh PDF (segera hadir)
-        </button>
+        <div className="mt-5">
+          {jadwal && periode && settings ? (
+            <TombolUnduhPDF ba={ba} jadwal={jadwal} periode={periode} settings={settings} />
+          ) : (
+            <button
+              disabled
+              className="min-h-[44px] w-full rounded-lg bg-gray-200 px-4 text-sm font-medium text-gray-500"
+            >
+              Memuat data untuk PDF...
+            </button>
+          )}
+        </div>
       </div>
     </main>
   );
