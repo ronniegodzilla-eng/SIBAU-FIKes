@@ -30,11 +30,35 @@ export default function IsiBeritaAcaraPage({
   const [jamSelesaiAktual, setJamSelesaiAktual] = useState('');
   const [jumlahBerkas, setJumlahBerkas] = useState('');
   const [kejadianKhusus, setKejadianKhusus] = useState(KEJADIAN_DEFAULT);
+  const [narasiDibantuAI, setNarasiDibantuAI] = useState(false);
+  const [merapikanNarasi, setMerapikanNarasi] = useState(false);
+  const [errorNarasi, setErrorNarasi] = useState('');
   const [namaPengisi, setNamaPengisi] = useState('');
   const [fotoBukti, setFotoBukti] = useState<FotoBukti[]>([]);
 
   const [error, setError] = useState('');
   const [mengirim, setMengirim] = useState(false);
+
+  async function handleBantuNarasi() {
+    if (!kejadianKhusus.trim() || kejadianKhusus.trim() === KEJADIAN_DEFAULT) return;
+    setErrorNarasi('');
+    setMerapikanNarasi(true);
+    try {
+      const res = await fetch('/api/ai-narasi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teks: kejadianKhusus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal merapikan narasi.');
+      setKejadianKhusus(data.narasi);
+      setNarasiDibantuAI(true);
+    } catch (err) {
+      setErrorNarasi(err instanceof Error ? err.message : 'Gagal merapikan narasi.');
+    } finally {
+      setMerapikanNarasi(false);
+    }
+  }
 
   useEffect(() => {
     async function muat() {
@@ -93,7 +117,7 @@ export default function IsiBeritaAcaraPage({
       const res = await fetch('/api/berita-acara', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jadwalId: params.jadwalId, narasiDibantuAI: false, ...payload }),
+        body: JSON.stringify({ jadwalId: params.jadwalId, narasiDibantuAI, ...payload }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan berita acara.');
@@ -283,15 +307,40 @@ export default function IsiBeritaAcaraPage({
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Kejadian khusus / catatan pelanggaran *
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">
+                Kejadian khusus / catatan pelanggaran *
+              </label>
+              <button
+                type="button"
+                onClick={handleBantuNarasi}
+                disabled={
+                  merapikanNarasi ||
+                  !kejadianKhusus.trim() ||
+                  kejadianKhusus.trim() === KEJADIAN_DEFAULT
+                }
+                className="text-xs font-medium text-primary-600 hover:text-primary-700 disabled:opacity-40"
+              >
+                {merapikanNarasi ? 'Merapikan...' : '✨ Bantu Narasi (AI)'}
+              </button>
+            </div>
             <textarea
               value={kejadianKhusus}
-              onChange={(e) => setKejadianKhusus(e.target.value)}
+              onChange={(e) => {
+                setKejadianKhusus(e.target.value);
+                setNarasiDibantuAI(false);
+              }}
               rows={3}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
+            {narasiDibantuAI && (
+              <p className="mt-1 text-xs text-primary-600">
+                Teks dirapikan dengan bantuan AI — silakan tinjau sebelum menyimpan.
+              </p>
+            )}
+            {errorNarasi && (
+              <p className="mt-1 text-xs text-red-600">{errorNarasi}</p>
+            )}
           </div>
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-gray-700">
