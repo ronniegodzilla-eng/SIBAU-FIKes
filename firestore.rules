@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Prinsip (§7 & §8 PRD): client hanya boleh READ. Semua WRITE (submit BA,
+// CRUD admin, audit log) lewat Next.js API Routes memakai firebase-admin SDK
+// yang bypass rules ini sepenuhnya. Jangan pernah mengubah `write` menjadi
+// `if true` di collection manapun.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /jadwal_ujian/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /berita_acara/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /periode/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /audit_log/{id} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
