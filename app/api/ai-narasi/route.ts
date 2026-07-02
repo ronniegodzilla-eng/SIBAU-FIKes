@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rapikanNarasi } from '@/lib/gemini';
+import { ambilIpDariRequest } from '@/lib/verify-admin';
+import { periksaRateLimit } from '@/lib/rate-limit';
 
 const MAKS_PANJANG_TEKS = 2000;
 
 export async function POST(req: NextRequest) {
   try {
+    const limit = periksaRateLimit(`ai-narasi:${ambilIpDariRequest(req)}`, {
+      maksPermintaan: 15,
+      jendelaMs: 5 * 60 * 1000,
+    });
+    if (!limit.diizinkan) {
+      return NextResponse.json(
+        { error: `Terlalu banyak percobaan. Coba lagi dalam ${limit.sisaDetikTunggu} detik.` },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const teks = body?.teks;
 

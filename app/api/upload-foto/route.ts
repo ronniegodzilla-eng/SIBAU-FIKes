@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { uploadFotoKeAppsScript, folderPathPeriode } from '@/lib/apps-script';
+import { ambilIpDariRequest } from '@/lib/verify-admin';
+import { periksaRateLimit } from '@/lib/rate-limit';
 
 const MIME_DIIZINKAN = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAKS_BYTES = 1_500_000; // ~1.5MB decoded, buffer di atas target kompresi 800KB
 
 export async function POST(req: NextRequest) {
   try {
+    const limit = periksaRateLimit(`upload-foto:${ambilIpDariRequest(req)}`, {
+      maksPermintaan: 20,
+      jendelaMs: 5 * 60 * 1000,
+    });
+    if (!limit.diizinkan) {
+      return NextResponse.json(
+        {
+          error: `Terlalu banyak percobaan unggah foto. Coba lagi dalam ${limit.sisaDetikTunggu} detik.`,
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { base64, mimeType, fileName, jadwalId } = body ?? {};
 

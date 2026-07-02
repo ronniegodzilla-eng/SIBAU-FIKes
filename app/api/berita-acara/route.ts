@@ -6,9 +6,24 @@ import { tulisAuditLogDalamTransaksi } from '@/lib/audit';
 import { validasiFormBA } from '@/lib/validasi';
 import { formatNomorBA, FORMAT_NOMOR_BA_DEFAULT } from '@/lib/nomor-ba';
 import { hariIniStrWIB } from '@/lib/tanggal';
+import { periksaRateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const ipAwal = ambilIpDariRequest(req);
+    const limit = periksaRateLimit(`submit-ba:${ipAwal}`, {
+      maksPermintaan: 10,
+      jendelaMs: 5 * 60 * 1000,
+    });
+    if (!limit.diizinkan) {
+      return NextResponse.json(
+        {
+          error: `Terlalu banyak percobaan submit. Coba lagi dalam ${limit.sisaDetikTunggu} detik.`,
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
 
     if (typeof body.jadwalId !== 'string' || !body.jadwalId) {
@@ -19,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: errorValidasi }, { status: 400 });
     }
 
-    const ip = ambilIpDariRequest(req);
+    const ip = ipAwal;
     const jadwalRef = adminDb.collection('jadwal_ujian').doc(body.jadwalId);
     const settingsRef = adminDb.collection('settings').doc('app');
     const baRef = adminDb.collection('berita_acara').doc();
