@@ -6,36 +6,34 @@ export default function PanelBelumDiisi({ daftar }: { daftar: JadwalUjian[] }) {
   if (daftar.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-red-200 bg-red-50 p-4">
-      <h2 className="text-sm font-semibold text-red-800">
-        Belum Diisi ({daftar.length})
+    <section className="mb-[18px] rounded-2xl border-[1.5px] border-danger-border bg-danger-softbg p-4 sm:p-[18px]">
+      <h2 className="text-[13.5px] font-extrabold text-danger-strong">
+        ⚠ Belum Diisi — Perlu Perhatian
       </h2>
-      <p className="mt-0.5 text-xs text-red-700">
+      <p className="mb-3 text-xs font-medium text-danger-text">
         Diurutkan dari yang paling lama tertunggak.
       </p>
-      <ul className="mt-3 space-y-2">
+      <ul className="flex flex-col gap-2">
         {daftar.map((j) => (
           <li
             key={j.id}
-            className="flex items-center justify-between gap-2 rounded-lg bg-white p-3 text-sm shadow-sm"
+            className="flex items-center justify-between gap-2.5 rounded-[11px] bg-white p-3"
           >
             <div className="min-w-0">
-              <p className="truncate font-medium text-gray-900">{j.namaMK}</p>
-              <p className="text-xs text-gray-500">
-                {formatTanggalSingkat(j.tanggalStr)} · {j.jamMulai} · {j.prodi}/{j.kelas}
+              <p className="truncate text-[13.5px] font-bold text-ink">{j.namaMK}</p>
+              <p className="text-[11.5px] font-medium text-subtle">
+                {j.kodeMK} · {j.kelas} · {formatTanggalSingkat(j.tanggalStr)}
+              </p>
+              <p className="mt-0.5 text-[11px] font-bold text-danger-text">
+                {labelTertunggak(j.tanggalStr)}
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="text-xs font-medium text-red-600">
-                {labelTertunggak(j.tanggalStr)}
-              </span>
-              <Link
-                href={`/isi/${j.id}`}
-                className="min-h-[36px] rounded-lg bg-primary-600 px-3 text-xs font-medium leading-[36px] text-white hover:bg-primary-700"
-              >
-                Isi
-              </Link>
-            </div>
+            <Link
+              href={`/isi/${j.id}`}
+              className="flex min-h-[36px] shrink-0 items-center rounded-lg bg-primary-600 px-3.5 text-xs font-bold text-white hover:bg-primary-700"
+            >
+              Isi Sekarang
+            </Link>
           </li>
         ))}
       </ul>

@@ -13,67 +13,69 @@ export default function JadwalTable({
   onHapus: (j: JadwalUjian) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left font-medium text-gray-600">Tanggal</th>
-            <th className="px-3 py-2 text-left font-medium text-gray-600">Jam</th>
-            <th className="px-3 py-2 text-left font-medium text-gray-600">Mata Kuliah</th>
-            <th className="px-3 py-2 text-left font-medium text-gray-600">Prodi/Kelas</th>
-            <th className="px-3 py-2 text-left font-medium text-gray-600">Dosen</th>
-            <th className="px-3 py-2 text-left font-medium text-gray-600">Status</th>
-            <th className="px-3 py-2 text-right font-medium text-gray-600">Aksi</th>
+    <div className="overflow-auto rounded-2xl bg-white shadow-[0_2px_10px_rgba(15,60,30,0.06)]">
+      <table className="w-full min-w-[900px] border-collapse text-[12.5px]">
+        <thead>
+          <tr className="bg-app">
+            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">TANGGAL</th>
+            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">JAM</th>
+            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">MK</th>
+            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">PRODI/KELAS</th>
+            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">DOSEN</th>
+            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">RUANGAN</th>
+            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">STATUS</th>
+            <th className="px-3.5 py-2.5 text-right text-[11px] font-semibold text-muted">AKSI</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody>
           {daftar.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-3 py-6 text-center text-gray-400">
+              <td colSpan={8} className="px-3.5 py-6 text-center text-faint">
                 Belum ada jadwal untuk periode ini.
               </td>
             </tr>
           )}
           {daftar.map((j) => (
-            <tr key={j.id}>
-              <td className="whitespace-nowrap px-3 py-2 text-gray-600">
+            <tr key={j.id} className="border-t border-line-soft">
+              <td className="whitespace-nowrap px-3.5 py-2.5 text-body">
                 {formatTanggalSingkat(j.tanggalStr)}
               </td>
-              <td className="whitespace-nowrap px-3 py-2 text-gray-600">
+              <td className="whitespace-nowrap px-3.5 py-2.5 text-body">
                 {j.jamMulai}–{j.jamSelesai}
               </td>
-              <td className="px-3 py-2">
-                <div className="font-medium text-gray-900">{j.namaMK}</div>
-                <div className="text-xs text-gray-500">{j.kodeMK}</div>
+              <td className="px-3.5 py-2.5">
+                <div className="font-bold text-ink">{j.namaMK}</div>
+                <div className="text-[11px] text-faint">{j.kodeMK}</div>
               </td>
-              <td className="px-3 py-2 text-gray-600">
+              <td className="px-3.5 py-2.5 text-body">
                 {j.prodi} / {j.kelas}
               </td>
-              <td className="px-3 py-2 text-gray-600">{j.dosenPengajar}</td>
-              <td className="px-3 py-2">
+              <td className="px-3.5 py-2.5 text-body">{j.dosenPengajar}</td>
+              <td className="px-3.5 py-2.5 text-body">{j.ruangan ?? '—'}</td>
+              <td className="px-3.5 py-2.5">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
                     j.status === 'terisi'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-success-bg text-success-text'
+                      : 'bg-danger-bg text-danger-text'
                   }`}
                 >
                   {j.status === 'terisi' ? 'Terisi' : 'Belum Diisi'}
                 </span>
               </td>
-              <td className="px-3 py-2 text-right">
+              <td className="whitespace-nowrap px-3.5 py-2.5 text-right">
                 <button
                   onClick={() => onEdit(j)}
                   disabled={j.status === 'terisi'}
-                  className="mr-2 min-h-[36px] rounded-lg border border-gray-300 px-3 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                  className="mr-1.5 min-h-[30px] rounded-lg border border-line-strong px-2.5 text-[11px] font-bold text-body hover:bg-app disabled:opacity-40"
                   title={j.status === 'terisi' ? 'Sudah ada berita acara' : undefined}
                 >
-                  Ubah
+                  Edit
                 </button>
                 <button
                   onClick={() => onHapus(j)}
                   disabled={j.status === 'terisi'}
-                  className="min-h-[36px] rounded-lg border border-red-200 px-3 text-xs text-red-600 hover:bg-red-50 disabled:opacity-40"
+                  className="min-h-[30px] rounded-lg border border-danger-border px-2.5 text-[11px] font-bold text-danger-text hover:bg-danger-softbg disabled:opacity-40"
                   title={j.status === 'terisi' ? 'Sudah ada berita acara' : undefined}
                 >
                   Hapus

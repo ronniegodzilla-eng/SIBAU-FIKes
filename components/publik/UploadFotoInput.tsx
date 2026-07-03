@@ -141,31 +141,28 @@ export default function UploadFotoInput({
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="mb-2 flex flex-wrap gap-2">
         {items.map((item) => (
-          <div
-            key={item.id}
-            className="relative aspect-square overflow-hidden rounded-lg border border-gray-200"
-          >
+          <div key={item.id} className="relative h-[76px] w-[76px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={item.previewUrl}
               alt={item.namaFile}
-              className="h-full w-full object-cover"
+              className="h-[76px] w-[76px] rounded-[9px] border-[1.5px] border-line object-cover"
             />
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-center text-xs text-white">
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[9px] bg-black/40 text-center text-[10px] text-white">
               {item.status === 'mengompres' && <span>Mengompres...</span>}
               {item.status === 'mengunggah' && <span>Mengunggah...</span>}
               {item.status === 'sukses' && (
-                <span className="rounded-full bg-green-600 px-2 py-0.5">Berhasil</span>
+                <span className="rounded-full bg-success-text px-2 py-0.5">Berhasil</span>
               )}
               {item.status === 'gagal' && (
-                <div className="space-y-1 px-2">
-                  <span className="block">{item.pesanError ?? 'Gagal'}</span>
+                <div className="space-y-1 px-1.5">
+                  <span className="block leading-tight">{item.pesanError ?? 'Gagal'}</span>
                   <button
                     type="button"
                     onClick={() => retryItem(item.id)}
-                    className="min-h-[28px] rounded-full bg-white px-2 text-xs font-medium text-gray-800"
+                    className="min-h-[24px] rounded-full bg-white px-2 text-[10px] font-semibold text-ink"
                   >
                     Coba lagi
                   </button>
@@ -175,7 +172,7 @@ export default function UploadFotoInput({
             <button
               type="button"
               onClick={() => hapusItem(item.id)}
-              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white"
+              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-danger-accent text-[11px] leading-none text-white"
             >
               ✕
             </button>
@@ -183,31 +180,26 @@ export default function UploadFotoInput({
         ))}
 
         {items.length < MAKS_FOTO && (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="flex aspect-square min-h-[44px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-xs text-gray-400 hover:border-primary-500 hover:text-primary-600"
-          >
-            <span className="text-xl">+</span>
-            Tambah Foto
-          </button>
+          <label className="flex h-[76px] w-[76px] cursor-pointer flex-col items-center justify-center rounded-[9px] border-[1.5px] border-dashed border-line-dashed text-[22px] font-light text-primary-600">
+            +
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(e) => {
+                tambahFile(e.target.files);
+                e.target.value = '';
+              }}
+              className="hidden"
+            />
+          </label>
         )}
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        multiple
-        onChange={(e) => {
-          tambahFile(e.target.files);
-          e.target.value = '';
-        }}
-        className="hidden"
-      />
-
-      <p className="mt-2 text-xs text-gray-500">
-        Minimal 1 foto, maksimal {MAKS_FOTO} foto. Foto otomatis dikompresi sebelum diunggah.
+      <p className="text-[11px] font-medium text-faint">
+        Foto akan dikompresi otomatis (≤ 800 KB) sebelum diunggah. Minimal 1, maksimal{' '}
+        {MAKS_FOTO} foto.
       </p>
     </div>
   );

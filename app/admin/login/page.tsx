@@ -55,26 +55,25 @@ export default function AdminLoginPage() {
 
   if (checkingSesi) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+      <div className="flex min-h-screen items-center justify-center text-sm text-faint">
         Memeriksa sesi...
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-lg font-semibold text-gray-900">Login Admin</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          SIBAU — Panitia UTS/UAS FIKes UIS
-        </p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-600 to-primary-700 px-5">
+      <div className="w-full max-w-[380px] rounded-2xl bg-white p-7 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+        <div className="mb-5 flex flex-col items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-uis.png" alt="Logo UIS" className="mb-2.5 h-14 w-14 object-contain" />
+          <div className="text-base font-extrabold text-ink">Login Admin Panitia</div>
+          <div className="text-[12.5px] font-medium text-faint">SIBAU · FIKes UIS</div>
+        </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="email" className="mb-1.5 block text-[12.5px] font-bold text-label">
               Email
             </label>
             <input
@@ -84,16 +83,13 @@ export default function AdminLoginPage() {
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full min-h-[44px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="admin@uis.ac.id"
+              className="box-border min-h-[44px] w-full rounded-[9px] border-[1.5px] border-line px-3 py-2.5 text-sm text-ink"
+              placeholder="panitia@fikes-uis.ac.id"
             />
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="password" className="mb-1.5 block text-[12.5px] font-bold text-label">
               Kata sandi
             </label>
             <input
@@ -103,24 +99,29 @@ export default function AdminLoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full min-h-[44px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="box-border min-h-[44px] w-full rounded-[9px] border-[1.5px] border-line px-3 py-2.5 text-sm text-ink"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
+            <p className="text-xs font-semibold text-danger-accent">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="min-h-[44px] w-full rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700 disabled:opacity-60"
+            className="mt-1 min-h-[44px] w-full rounded-[10px] bg-primary-600 py-3 text-[14.5px] font-extrabold text-white transition hover:bg-primary-700 disabled:opacity-60"
           >
             {loading ? 'Memproses...' : 'Masuk'}
           </button>
+
+          <a
+            href="/"
+            className="text-center text-[12.5px] font-semibold text-muted hover:text-primary-600"
+          >
+            ← Kembali ke halaman publik
+          </a>
         </form>
       </div>
     </div>

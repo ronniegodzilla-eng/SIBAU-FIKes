@@ -97,7 +97,7 @@ export function selisihHariDariSekarang(tanggalStr: string): number {
 /** Label tunggakan untuk panel "Belum Diisi" (F-02): "H+2 belum diisi". */
 export function labelTertunggak(tanggalStr: string): string {
   const n = selisihHariDariSekarang(tanggalStr);
-  if (n <= 0) return 'Hari ini';
+  if (n <= 0) return 'Hari ini · belum diisi';
   return `H+${n} belum diisi`;
 }
 

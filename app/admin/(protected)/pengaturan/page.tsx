@@ -4,21 +4,26 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { adminFetch, AdminFetchError } from '@/lib/admin-fetch';
+import { useToast } from '@/components/ui/ToastProvider';
 import { FORMAT_NOMOR_BA_DEFAULT } from '@/lib/nomor-ba';
 
 const KOSONG = {
   namaUniversitas: 'Universitas Ibnu Sina',
   namaFakultas: 'Fakultas Ilmu Kesehatan',
-  logoUrl: '',
+  alamat: 'Batam, Kepulauan Riau',
+  logoUrl: '/logo-uis.png',
   pejabat: { nama: '', nip: '', jabatan: 'Koordinator Panitia UTS/UAS' },
   formatNomorBA: FORMAT_NOMOR_BA_DEFAULT,
 };
 
+const labelCls = 'mb-1.5 block text-xs font-bold text-label';
+const inputCls =
+  'box-border w-full rounded-lg border-[1.5px] border-line px-2.5 py-2.5 text-[13.5px] text-ink';
+
 export default function AdminPengaturanPage() {
+  const { showToast } = useToast();
   const [form, setForm] = useState(KOSONG);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [sukses, setSukses] = useState('');
   const [menyimpan, setMenyimpan] = useState(false);
 
   useEffect(() => {
@@ -30,7 +35,8 @@ export default function AdminPengaturanPage() {
           setForm({
             namaUniversitas: data.namaUniversitas ?? KOSONG.namaUniversitas,
             namaFakultas: data.namaFakultas ?? KOSONG.namaFakultas,
-            logoUrl: data.logoUrl ?? '',
+            alamat: data.alamat ?? KOSONG.alamat,
+            logoUrl: data.logoUrl ?? KOSONG.logoUrl,
             pejabat: {
               nama: data.pejabat?.nama ?? '',
               nip: data.pejabat?.nip ?? '',
@@ -40,133 +46,137 @@ export default function AdminPengaturanPage() {
           });
         }
       } catch {
-        setError('Gagal memuat pengaturan.');
+        showToast('Gagal memuat pengaturan.', 'error');
       } finally {
         setLoading(false);
       }
     }
     muat();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setSukses('');
     setMenyimpan(true);
     try {
       await adminFetch('/api/admin/pengaturan', {
         method: 'PUT',
         body: JSON.stringify(form),
       });
-      setSukses('Pengaturan berhasil disimpan.');
+      showToast('Pengaturan berhasil disimpan.', 'success');
     } catch (err) {
-      setError(err instanceof AdminFetchError ? err.message : 'Gagal menyimpan pengaturan.');
+      showToast(
+        err instanceof AdminFetchError ? err.message : 'Gagal menyimpan pengaturan.',
+        'error'
+      );
     } finally {
       setMenyimpan(false);
     }
   }
 
   if (loading) {
-    return <p className="text-sm text-gray-400">Memuat pengaturan...</p>;
+    return <p className="text-sm text-faint">Memuat pengaturan...</p>;
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900">Pengaturan Aplikasi</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Data ini dipakai untuk kop dan tanda tangan pada PDF berita acara.
-        </p>
-      </div>
-
+    <div className="max-w-[640px]">
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2"
+        className="flex flex-col gap-4 rounded-2xl bg-white p-[22px] shadow-[0_2px_10px_rgba(15,60,30,0.06)]"
       >
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Nama universitas</label>
-          <input
-            value={form.namaUniversitas}
-            onChange={(e) => setForm({ ...form, namaUniversitas: e.target.value })}
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
+        <div className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={form.logoUrl || '/logo-uis.png'}
+            alt="Logo"
+            className="h-16 w-16 rounded-[10px] border border-line object-contain p-1"
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Nama fakultas</label>
-          <input
-            value={form.namaFakultas}
-            onChange={(e) => setForm({ ...form, namaFakultas: e.target.value })}
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">
-            URL logo (opsional)
-          </label>
-          <input
-            value={form.logoUrl}
-            onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-            placeholder="https://..."
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Nama pejabat penandatangan
-          </label>
-          <input
-            value={form.pejabat.nama}
-            onChange={(e) => setForm({ ...form, pejabat: { ...form.pejabat, nama: e.target.value } })}
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">NIP</label>
-          <input
-            value={form.pejabat.nip}
-            onChange={(e) => setForm({ ...form, pejabat: { ...form.pejabat, nip: e.target.value } })}
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Jabatan</label>
-          <input
-            value={form.pejabat.jabatan}
-            onChange={(e) => setForm({ ...form, pejabat: { ...form.pejabat, jabatan: e.target.value } })}
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Format nomor berita acara
-          </label>
-          <input
-            value={form.formatNomorBA}
-            onChange={(e) => setForm({ ...form, formatNomorBA: e.target.value })}
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm font-mono"
-          />
-          <p className="mt-1 text-xs text-gray-400">
-            Placeholder: {'{nomor}'}, {'{jenis}'}, {'{bulanRomawi}'}, {'{tahun}'}
-          </p>
+          <div className="flex-1">
+            <label className={labelCls}>URL Logo</label>
+            <input
+              value={form.logoUrl}
+              onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+              placeholder="https://..."
+              className={inputCls}
+            />
+          </div>
         </div>
 
-        <div className="sm:col-span-2">
-          {error && (
-            <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-          )}
-          {sukses && (
-            <p className="mb-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-              {sukses}
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          <div>
+            <label className={labelCls}>Nama Universitas</label>
+            <input
+              value={form.namaUniversitas}
+              onChange={(e) => setForm({ ...form, namaUniversitas: e.target.value })}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Nama Fakultas</label>
+            <input
+              value={form.namaFakultas}
+              onChange={(e) => setForm({ ...form, namaFakultas: e.target.value })}
+              className={inputCls}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Alamat</label>
+            <input
+              value={form.alamat}
+              onChange={(e) => setForm({ ...form, alamat: e.target.value })}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Nama Pejabat Penandatangan</label>
+            <input
+              value={form.pejabat.nama}
+              onChange={(e) =>
+                setForm({ ...form, pejabat: { ...form.pejabat, nama: e.target.value } })
+              }
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>NIP</label>
+            <input
+              value={form.pejabat.nip}
+              onChange={(e) =>
+                setForm({ ...form, pejabat: { ...form.pejabat, nip: e.target.value } })
+              }
+              className={inputCls}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Jabatan</label>
+            <input
+              value={form.pejabat.jabatan}
+              onChange={(e) =>
+                setForm({ ...form, pejabat: { ...form.pejabat, jabatan: e.target.value } })
+              }
+              className={inputCls}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Format Nomor Berita Acara</label>
+            <input
+              value={form.formatNomorBA}
+              onChange={(e) => setForm({ ...form, formatNomorBA: e.target.value })}
+              className={`${inputCls} font-mono`}
+            />
+            <p className="mt-1.5 text-[11px] text-faint">
+              Placeholder: {'{nomor}'}, {'{jenis}'}, {'{bulanRomawi}'}, {'{tahun}'}
             </p>
-          )}
-          <button
-            type="submit"
-            disabled={menyimpan}
-            className="min-h-[44px] rounded-lg bg-primary-600 px-4 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
-          >
-            {menyimpan ? 'Menyimpan...' : 'Simpan Pengaturan'}
-          </button>
+          </div>
         </div>
+
+        <button
+          type="submit"
+          disabled={menyimpan}
+          className="min-h-[40px] self-start rounded-lg bg-primary-600 px-5 text-[13.5px] font-bold text-white hover:bg-primary-700 disabled:opacity-60"
+        >
+          {menyimpan ? 'Menyimpan...' : 'Simpan Pengaturan'}
+        </button>
       </form>
     </div>
   );

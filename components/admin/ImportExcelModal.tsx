@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
+import Modal from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/ToastProvider';
 import { adminFetch, AdminFetchError } from '@/lib/admin-fetch';
 import { validasiBarisJadwal, kunciUnikJadwal } from '@/lib/validasi-jadwal';
 import type { BarisImportJadwal } from '@/lib/types';
@@ -17,18 +19,6 @@ const HEADER_TEMPLATE = [
   'Dosen Pengajar',
   'Ruangan',
 ] as const;
-
-const PEMETAAN_FIELD: Record<(typeof HEADER_TEMPLATE)[number], keyof BarisImportJadwal> = {
-  'Tanggal (YYYY-MM-DD)': 'tanggalStr',
-  'Jam Mulai (HH:MM)': 'jamMulai',
-  'Jam Selesai (HH:MM)': 'jamSelesai',
-  'Kode MK': 'kodeMK',
-  'Nama MK': 'namaMK',
-  Prodi: 'prodi',
-  Kelas: 'kelas',
-  'Dosen Pengajar': 'dosenPengajar',
-  Ruangan: 'ruangan',
-};
 
 interface BarisPreview {
   baris: number;
@@ -61,16 +51,17 @@ export default function ImportExcelModal({
   onClose: () => void;
   onImported: () => void;
 }) {
+  const { showToast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<BarisPreview[]>([]);
-  const [error, setError] = useState('');
+  const [namaFile, setNamaFile] = useState('');
   const [mengimpor, setMengimpor] = useState(false);
   const [hasilServer, setHasilServer] = useState<HasilServer[] | null>(null);
 
   function handlePilihFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError('');
+    setNamaFile(file.name);
     setHasilServer(null);
 
     const reader = new FileReader();
@@ -113,14 +104,13 @@ export default function ImportExcelModal({
 
         setPreview(hasilPreview);
       } catch {
-        setError('Gagal membaca file. Pastikan format .xlsx sesuai template.');
+        showToast('Gagal membaca file. Pastikan format .xlsx sesuai template.', 'error');
       }
     };
     reader.readAsArrayBuffer(file);
   }
 
   async function handleImpor() {
-    setError('');
     setMengimpor(true);
     try {
       const res = await adminFetch<{ hasil: HasilServer[]; jumlahBerhasil: number }>(
@@ -131,43 +121,45 @@ export default function ImportExcelModal({
         }
       );
       setHasilServer(res.hasil);
-      if (res.jumlahBerhasil > 0) onImported();
+      if (res.jumlahBerhasil > 0) {
+        showToast(`${res.jumlahBerhasil} jadwal berhasil diimpor.`, 'success');
+        onImported();
+      }
     } catch (err) {
-      setError(err instanceof AdminFetchError ? err.message : 'Gagal mengimpor jadwal.');
+      showToast(
+        err instanceof AdminFetchError ? err.message : 'Gagal mengimpor jadwal.',
+        'error'
+      );
     } finally {
       setMengimpor(false);
     }
   }
 
   const jumlahValid = preview.filter((p) => !p.errorClient).length;
+  const jumlahInvalid = preview.length - jumlahValid;
+  const langkah = preview.length > 0 ? 2 : 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-5 shadow-lg">
-        <div className="flex items-start justify-between">
-          <h2 className="text-base font-semibold text-gray-900">
-            Import Jadwal dari Excel
-          </h2>
-          <button
-            onClick={onClose}
-            className="min-h-[36px] min-w-[36px] rounded-lg text-gray-400 hover:bg-gray-100"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
+    <Modal title="Import Jadwal dari Excel/CSV" onClose={onClose} maxWidthClass="max-w-[640px]">
+      {langkah === 1 && (
+        <>
+          <p className="mb-4 text-[12.5px] text-faint">
+            Unduh template, isi jadwal, lalu unggah kembali untuk divalidasi sebelum disimpan.
+          </p>
           <button
             onClick={unduhTemplate}
-            className="min-h-[44px] rounded-lg border border-gray-300 px-4 text-sm text-gray-700 hover:bg-gray-50"
+            className="mb-4 rounded-lg border-[1.5px] border-primary-600 px-3.5 py-2 text-[12.5px] font-bold text-primary-600 hover:bg-primary-50"
           >
-            Unduh Template Excel
+            ⬇ Unduh Template Excel
           </button>
           <button
+            type="button"
             onClick={() => inputRef.current?.click()}
-            className="min-h-[44px] rounded-lg border border-gray-300 px-4 text-sm text-gray-700 hover:bg-gray-50"
+            className="w-full rounded-xl border-2 border-dashed border-line-dashed px-5 py-9 text-center text-body"
           >
-            Pilih File .xlsx
+            <div className="mb-2 text-[28px]">📄</div>
+            <div className="text-[13.5px] font-bold">Klik untuk pilih file jadwal (.xlsx)</div>
+            <div className="mt-1 text-[11.5px] text-faint">Format sesuai template di atas</div>
           </button>
           <input
             ref={inputRef}
@@ -176,79 +168,76 @@ export default function ImportExcelModal({
             onChange={handlePilihFile}
             className="hidden"
           />
-        </div>
+        </>
+      )}
 
-        {error && (
-          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
+      {langkah === 2 && (
+        <>
+          <p className="mb-3.5 text-[12.5px] text-faint">
+            {namaFile && <span className="font-semibold text-body">{namaFile} — </span>}
+            Ditemukan {preview.length} baris — {jumlahValid} valid, {jumlahInvalid} bermasalah.
           </p>
-        )}
-
-        {preview.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-600">
-              {preview.length} baris terbaca, {jumlahValid} valid untuk diimpor.
-            </p>
-            <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-gray-200">
-              <table className="min-w-full text-xs">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-2 py-1 text-left">Baris</th>
-                    <th className="px-2 py-1 text-left">MK</th>
-                    <th className="px-2 py-1 text-left">Tanggal/Jam</th>
-                    <th className="px-2 py-1 text-left">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {preview.map((p) => {
-                    const hasil = hasilServer?.find((h) => h.baris === p.baris);
-                    const status = hasil
-                      ? hasil.ok
-                        ? 'Berhasil diimpor'
-                        : hasil.pesan
-                      : p.errorClient;
-                    const ok = hasil ? hasil.ok : !p.errorClient;
-                    return (
-                      <tr key={p.baris}>
-                        <td className="px-2 py-1">{p.baris}</td>
-                        <td className="px-2 py-1">
-                          {p.data.kodeMK} — {p.data.namaMK}
-                        </td>
-                        <td className="px-2 py-1">
-                          {p.data.tanggalStr} {p.data.jamMulai}
-                        </td>
-                        <td
-                          className={`px-2 py-1 ${ok ? 'text-green-600' : 'text-red-600'}`}
-                        >
-                          {status ?? 'Valid'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {!hasilServer && (
-              <button
-                onClick={handleImpor}
-                disabled={mengimpor || jumlahValid === 0}
-                className="mt-4 min-h-[44px] rounded-lg bg-primary-600 px-4 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
-              >
-                {mengimpor ? 'Mengimpor...' : `Impor ${jumlahValid} Baris Valid`}
-              </button>
-            )}
-            {hasilServer && (
-              <button
-                onClick={onClose}
-                className="mt-4 min-h-[44px] rounded-lg bg-primary-600 px-4 text-sm font-medium text-white hover:bg-primary-700"
-              >
-                Selesai
-              </button>
-            )}
+          <div className="mb-4 max-h-64 overflow-auto rounded-[10px] border border-line">
+            <table className="w-full min-w-[560px] border-collapse text-xs">
+              <thead>
+                <tr className="bg-app">
+                  <th className="px-2.5 py-2 text-left">Tanggal</th>
+                  <th className="px-2.5 py-2 text-left">MK</th>
+                  <th className="px-2.5 py-2 text-left">Prodi/Kelas</th>
+                  <th className="px-2.5 py-2 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.map((p) => {
+                  const hasil = hasilServer?.find((h) => h.baris === p.baris);
+                  const status = hasil
+                    ? hasil.ok
+                      ? 'Berhasil diimpor'
+                      : hasil.pesan
+                    : p.errorClient;
+                  const ok = hasil ? hasil.ok : !p.errorClient;
+                  return (
+                    <tr key={p.baris} className="border-t border-line-soft">
+                      <td className="px-2.5 py-2">{p.data.tanggalStr}</td>
+                      <td className="px-2.5 py-2">
+                        {p.data.namaMK} ({p.data.kodeMK})
+                      </td>
+                      <td className="px-2.5 py-2">
+                        {p.data.prodi} / {p.data.kelas}
+                      </td>
+                      <td
+                        className={`px-2.5 py-2 font-bold ${
+                          ok ? 'text-success-text' : 'text-danger-text'
+                        }`}
+                      >
+                        {status ?? 'Valid'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+        </>
+      )}
+
+      <div className="flex justify-end gap-2.5">
+        <button
+          onClick={onClose}
+          className="min-h-[40px] rounded-lg border-[1.5px] border-line-strong bg-white px-4 text-[13.5px] font-semibold text-body"
+        >
+          {hasilServer ? 'Tutup' : 'Batal'}
+        </button>
+        {langkah === 2 && !hasilServer && (
+          <button
+            onClick={handleImpor}
+            disabled={mengimpor || jumlahValid === 0}
+            className="min-h-[40px] rounded-lg bg-primary-600 px-4 text-[13.5px] font-bold text-white hover:bg-primary-700 disabled:opacity-60"
+          >
+            {mengimpor ? 'Mengimpor...' : `Impor ${jumlahValid} Jadwal`}
+          </button>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }

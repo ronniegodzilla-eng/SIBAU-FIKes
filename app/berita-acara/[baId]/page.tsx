@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { formatTanggalIndonesia } from '@/lib/tanggal';
@@ -57,7 +58,7 @@ export default function DetailBeritaAcaraPage({
 
   if (ba === undefined) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-10 text-center text-sm text-gray-400">
+      <main className="mx-auto max-w-[700px] px-4 py-10 text-center text-sm text-faint">
         {error || 'Memuat...'}
       </main>
     );
@@ -65,114 +66,217 @@ export default function DetailBeritaAcaraPage({
 
   if (ba === null) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-10 text-center text-sm text-gray-600">
+      <main className="mx-auto max-w-[700px] px-4 py-10 text-center text-sm text-faint">
         Berita acara tidak ditemukan.
       </main>
     );
   }
 
-  return (
-    <main className="mx-auto max-w-2xl px-4 py-6 pb-16">
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary-600">
-          {ba.nomorBA}
-        </p>
-        <h1 className="mt-1 text-lg font-semibold text-gray-900">
-          Berita Acara Pelaksanaan Ujian
-        </h1>
-        {jadwal && (
-          <p className="mt-1 text-sm text-gray-500">
-            {jadwal.namaMK} ({jadwal.kodeMK}) — {formatTanggalIndonesia(jadwal.tanggalStr)}
-          </p>
-        )}
+  const judulPeriode = periode
+    ? `${periode.jenis} Semester ${periode.semester} T.A. ${periode.tahunAkademik}`
+    : 'Ujian';
 
-        <dl className="mt-4 grid grid-cols-2 gap-y-3 text-sm">
-          {jadwal && (
-            <>
-              <div>
-                <dt className="text-xs text-gray-400">Prodi/Kelas</dt>
-                <dd className="text-gray-800">{jadwal.prodi} / {jadwal.kelas}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-400">Ruangan</dt>
-                <dd className="text-gray-800">{jadwal.ruangan ?? '-'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-400">Dosen Pengajar</dt>
-                <dd className="text-gray-800">{jadwal.dosenPengajar}</dd>
-              </div>
-            </>
+  return (
+    <div className="mx-auto max-w-[700px] pb-[60px]">
+      <div
+        id="no-print"
+        className="flex items-center justify-between gap-3 bg-primary-600 px-[18px] py-4"
+      >
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-white/[0.14] text-base text-white"
+          >
+            ←
+          </Link>
+          <div className="text-[15px] font-extrabold text-white">Detail Berita Acara</div>
+        </div>
+        {jadwal && periode && settings && (
+          <TombolUnduhPDF ba={ba} jadwal={jadwal} periode={periode} settings={settings} />
+        )}
+      </div>
+
+      <div
+        id="print-area"
+        className="m-4 bg-white p-[30px] font-serif text-[#1a1a1a] shadow-[0_4px_20px_rgba(15,60,30,0.08)] sm:p-[34px]"
+      >
+        <div className="mb-[18px] flex items-center gap-[18px] border-b-[3px] border-double border-primary-600 pb-3.5">
+          {settings?.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={settings.logoUrl}
+              alt="Logo"
+              className="h-[66px] w-[66px] shrink-0 object-contain"
+            />
           )}
-          <div>
-            <dt className="text-xs text-gray-400">Pengawas 1</dt>
-            <dd className="text-gray-800">{ba.pengawas1}</dd>
-          </div>
-          {ba.pengawas2 && (
-            <div>
-              <dt className="text-xs text-gray-400">Pengawas 2</dt>
-              <dd className="text-gray-800">{ba.pengawas2}</dd>
+          <div className="flex-1 text-center">
+            <div className="text-sm font-bold tracking-wide">
+              YAYASAN UNIVERSITAS IBNU SINA BATAM
             </div>
-          )}
-          <div>
-            <dt className="text-xs text-gray-400">Jam Aktual</dt>
-            <dd className="text-gray-800">{ba.jamMulaiAktual}–{ba.jamSelesaiAktual}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-gray-400">Peserta Terdaftar/Hadir</dt>
-            <dd className="text-gray-800">{ba.pesertaTerdaftar} / {ba.pesertaHadir}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-gray-400">Peserta Tidak Hadir</dt>
-            <dd className="text-gray-800">{ba.pesertaTidakHadir}</dd>
-          </div>
-          {ba.jumlahBerkas != null && (
-            <div>
-              <dt className="text-xs text-gray-400">Jumlah Berkas</dt>
-              <dd className="text-gray-800">{ba.jumlahBerkas}</dd>
+            <div className="text-[17px] font-bold tracking-wide">
+              {settings?.namaUniversitas ?? '—'}
             </div>
-          )}
-          <div className="col-span-2">
-            <dt className="text-xs text-gray-400">Kejadian Khusus</dt>
-            <dd className="text-gray-800">{ba.kejadianKhusus}</dd>
+            <div className="text-[14.5px] font-semibold">{settings?.namaFakultas ?? '—'}</div>
+            <div className="text-[11.5px] text-[#555]">{settings?.alamat ?? ''}</div>
           </div>
-          <div className="col-span-2">
-            <dt className="text-xs text-gray-400">Nama Pengisi</dt>
-            <dd className="text-gray-800">{ba.namaPengisi}</dd>
+        </div>
+
+        <div className="mb-5 text-center">
+          <div className="text-[15.5px] font-bold uppercase tracking-wide">
+            Berita Acara Pelaksanaan Ujian {judulPeriode}
           </div>
-        </dl>
+          <div className="mt-1 text-[13px]">Nomor: {ba.nomorBA}</div>
+        </div>
+
+        <table className="mb-4 w-full border-collapse text-[13px]">
+          <tbody>
+            <tr>
+              <td className="w-[150px] py-1 pr-2 text-[#444]">Hari / Tanggal</td>
+              <td className="w-4 py-1">:</td>
+              <td className="py-1 font-semibold">
+                {jadwal ? formatTanggalIndonesia(jadwal.tanggalStr) : '—'}
+              </td>
+              <td className="w-[110px] py-1 pl-6 pr-2 text-[#444]">Ruangan</td>
+              <td className="w-4 py-1">:</td>
+              <td className="py-1 font-semibold">{jadwal?.ruangan ?? '—'}</td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 text-[#444]">Jam Ujian</td>
+              <td className="py-1">:</td>
+              <td className="py-1 font-semibold">
+                {jadwal ? `${jadwal.jamMulai} – ${jadwal.jamSelesai}` : '—'}
+              </td>
+              <td className="py-1 pl-6 pr-2 text-[#444]">Kelas</td>
+              <td className="py-1">:</td>
+              <td className="py-1 font-semibold">{jadwal?.kelas ?? '—'}</td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 text-[#444]">Mata Kuliah</td>
+              <td className="py-1">:</td>
+              <td className="py-1 font-semibold" colSpan={4}>
+                {jadwal ? `${jadwal.namaMK} (${jadwal.kodeMK})` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 text-[#444]">Program Studi</td>
+              <td className="py-1">:</td>
+              <td className="py-1 font-semibold" colSpan={4}>
+                {jadwal?.prodi ?? '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 text-[#444]">Dosen Pengajar</td>
+              <td className="py-1">:</td>
+              <td className="py-1 font-semibold" colSpan={4}>
+                {jadwal?.dosenPengajar ?? '—'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="mb-3.5 border-t border-[#ccc] pt-3">
+          <table className="w-full border-collapse text-[13px]">
+            <tbody>
+              <tr>
+                <td className="w-[190px] py-1 pr-2 text-[#444]">Peserta Terdaftar</td>
+                <td className="w-4 py-1">:</td>
+                <td className="py-1 font-semibold">{ba.pesertaTerdaftar} orang</td>
+              </tr>
+              <tr>
+                <td className="py-1 pr-2 text-[#444]">Peserta Hadir</td>
+                <td className="py-1">:</td>
+                <td className="py-1 font-semibold">{ba.pesertaHadir} orang</td>
+              </tr>
+              <tr>
+                <td className="py-1 pr-2 text-[#444]">Peserta Tidak Hadir</td>
+                <td className="py-1">:</td>
+                <td className="py-1 font-semibold">
+                  {ba.pesertaTidakHadir} orang
+                  {ba.daftarTidakHadir ? ` (${ba.daftarTidakHadir})` : ''}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-1 pr-2 text-[#444]">Jam Mulai / Selesai Aktual</td>
+                <td className="py-1">:</td>
+                <td className="py-1 font-semibold">
+                  {ba.jamMulaiAktual} – {ba.jamSelesaiAktual}
+                </td>
+              </tr>
+              {ba.jumlahBerkas != null && (
+                <tr>
+                  <td className="py-1 pr-2 text-[#444]">Jumlah Berkas Diserahkan</td>
+                  <td className="py-1">:</td>
+                  <td className="py-1 font-semibold">{ba.jumlahBerkas} lembar</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mb-4">
+          <div className="mb-1 text-[12.5px] text-[#444]">Kejadian Khusus / Catatan Pelanggaran:</div>
+          <div className="rounded-md bg-app px-2.5 py-2 text-[13px] font-semibold">
+            {ba.kejadianKhusus}
+          </div>
+        </div>
 
         {ba.fotoBukti.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Foto Bukti
-            </p>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="mb-5">
+            <div className="mb-2 text-[12.5px] text-[#444]">Lampiran Foto Bukti Pelaksanaan:</div>
+            <div className="flex flex-wrap gap-2.5">
               {ba.fotoBukti.map((f) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={f.fileId}
                   src={f.url}
                   alt={f.namaFile}
-                  className="aspect-square w-full rounded-lg border border-gray-200 object-cover"
+                  className="h-[90px] w-[120px] rounded-md border border-[#ddd] object-cover"
                 />
               ))}
             </div>
           </div>
         )}
 
-        <div className="mt-5">
-          {jadwal && periode && settings ? (
-            <TombolUnduhPDF ba={ba} jadwal={jadwal} periode={periode} settings={settings} />
-          ) : (
-            <button
-              disabled
-              className="min-h-[44px] w-full rounded-lg bg-gray-200 px-4 text-sm font-medium text-gray-500"
-            >
-              Memuat data untuk PDF...
-            </button>
-          )}
+        <table className="mt-9 w-full border-collapse text-center text-[13px]">
+          <tbody>
+            <tr>
+              <td className="w-1/3 align-top">
+                <div className="h-[60px]" />
+                <div className="mx-3.5 border-t border-[#333] pt-1.5 font-bold">
+                  {ba.pengawas1}
+                </div>
+                <div className="text-[11.5px] text-[#555]">Pengawas 1</div>
+              </td>
+              <td className="w-1/3 align-top">
+                <div className="h-[60px]" />
+                <div className="mx-3.5 border-t border-[#333] pt-1.5 font-bold">
+                  {ba.pengawas2 ?? '—'}
+                </div>
+                <div className="text-[11.5px] text-[#555]">Pengawas 2</div>
+              </td>
+              <td className="w-1/3 align-top">
+                <div className="h-[60px]" />
+                <div className="mx-3.5 border-t border-[#333] pt-1.5 font-bold">
+                  {settings?.pejabat.nama ?? '—'}
+                </div>
+                <div className="text-[11.5px] text-[#555]">
+                  Mengetahui, {settings?.pejabat.jabatan ?? '—'}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="mt-4 text-center text-[11px] text-[#888]">
+          Diisi oleh: {ba.namaPengisi} · Dokumen digital SIBAU — sah tanpa tanda tangan basah
+          setelah dicetak dan ditandatangani
         </div>
       </div>
-    </main>
+
+      <div id="no-print" className="mx-4 mb-5 text-center">
+        <span className="inline-block rounded-full bg-primary-50 px-3.5 py-2 text-xs font-bold text-primary-600">
+          🔒 Berita acara terkunci — hubungi panitia untuk koreksi
+        </span>
+      </div>
+    </div>
   );
 }

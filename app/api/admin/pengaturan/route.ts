@@ -43,6 +43,7 @@ export async function PUT(req: NextRequest) {
         {
           namaUniversitas: body.namaUniversitas.trim(),
           namaFakultas: body.namaFakultas.trim(),
+          alamat: body.alamat?.trim() || '',
           logoUrl: body.logoUrl?.trim() || '',
           pejabat: {
             nama: body.pejabat.nama.trim(),

@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAdminToken, ambilIpDariRequest, AdminAuthError } from '@/lib/verify-admin';
 import { tulisAuditLog } from '@/lib/audit';
 import { buatTimestampTengahHariWIB } from '@/lib/tanggal';
 import { validasiBarisJadwal, kunciUnikJadwal } from '@/lib/validasi-jadwal';
+
+/** Ambil nomorBA untuk sekumpulan beritaAcaraId (chunk 30 sesuai batas query 'in'). */
+async function ambilPetaNomorBA(ids: string[]): Promise<Map<string, string>> {
+  const peta = new Map<string, string>();
+  for (let i = 0; i < ids.length; i += 30) {
+    const chunk = ids.slice(i, i + 30);
+    const snap = await adminDb
+      .collection('berita_acara')
+      .where(FieldPath.documentId(), 'in', chunk)
+      .get();
+    snap.docs.forEach((d) => peta.set(d.id, d.data().nomorBA as string));
+  }
+  return peta;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,6 +28,17 @@ export async function GET(req: NextRequest) {
     if (periodeId) query = query.where('periodeId', '==', periodeId);
     const snap = await query.orderBy('tanggalStr', 'asc').get();
     const jadwal = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    const idBA = jadwal
+      .map((j: any) => j.beritaAcaraId)
+      .filter((id: unknown): id is string => typeof id === 'string');
+    if (idBA.length > 0) {
+      const petaNomorBA = await ambilPetaNomorBA(idBA);
+      jadwal.forEach((j: any) => {
+        if (j.beritaAcaraId) j.nomorBA = petaNomorBA.get(j.beritaAcaraId) ?? null;
+      });
+    }
+
     return NextResponse.json({ jadwal });
   } catch (err) {
     if (err instanceof AdminAuthError) {

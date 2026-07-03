@@ -11,8 +11,8 @@ const PDFDownloadLink = dynamic(
   {
     ssr: false,
     loading: () => (
-      <span className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-gray-200 text-sm font-medium text-gray-500">
-        Menyiapkan PDF...
+      <span className="flex min-h-[38px] items-center justify-center rounded-[9px] bg-white/40 px-3.5 text-[12.5px] font-extrabold text-[#3D2E00]">
+        Menyiapkan...
       </span>
     ),
   }
@@ -35,10 +35,10 @@ export default function TombolUnduhPDF({
         <BeritaAcaraPDF ba={ba} jadwal={jadwal} periode={periode} settings={settings} />
       }
       fileName={`${ba.nomorBA.replace(/\//g, '-')}.pdf`}
-      className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-primary-600 px-4 text-sm font-medium text-white hover:bg-primary-700"
+      className="flex min-h-[38px] items-center justify-center whitespace-nowrap rounded-[9px] bg-warn-accent px-3.5 text-[12.5px] font-extrabold text-[#3D2E00] hover:brightness-95"
     >
       {({ loading, error }) =>
-        error ? 'Gagal membuat PDF' : loading ? 'Menyiapkan PDF...' : 'Unduh PDF'
+        error ? 'Gagal membuat PDF' : loading ? 'Menyiapkan...' : '⬇ Unduh PDF'
       }
     </PDFDownloadLink>
   );

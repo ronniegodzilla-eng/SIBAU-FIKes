@@ -2,14 +2,20 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { formatTanggalIndonesia, jamStrWIB } from '@/lib/tanggal';
 import { validasiFormBA } from '@/lib/validasi';
+import { useToast } from '@/components/ui/ToastProvider';
 import UploadFotoInput from '@/components/publik/UploadFotoInput';
 import type { JadwalUjian, Periode, FotoBukti } from '@/lib/types';
 
 const KEJADIAN_DEFAULT = 'Nihil';
+
+const inputCls =
+  'mt-1.5 min-h-[44px] w-full rounded-[9px] border-[1.5px] border-line px-3 py-2.5 text-sm text-ink box-border';
+const labelCls = 'block text-[12.5px] font-bold text-label';
 
 export default function IsiBeritaAcaraPage({
   params,
@@ -17,6 +23,7 @@ export default function IsiBeritaAcaraPage({
   params: { jadwalId: string };
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [jadwal, setJadwal] = useState<JadwalUjian | null | undefined>(undefined);
   const [periode, setPeriode] = useState<Periode | null>(null);
   const [errorMuat, setErrorMuat] = useState('');
@@ -32,16 +39,13 @@ export default function IsiBeritaAcaraPage({
   const [kejadianKhusus, setKejadianKhusus] = useState(KEJADIAN_DEFAULT);
   const [narasiDibantuAI, setNarasiDibantuAI] = useState(false);
   const [merapikanNarasi, setMerapikanNarasi] = useState(false);
-  const [errorNarasi, setErrorNarasi] = useState('');
   const [namaPengisi, setNamaPengisi] = useState('');
   const [fotoBukti, setFotoBukti] = useState<FotoBukti[]>([]);
 
-  const [error, setError] = useState('');
   const [mengirim, setMengirim] = useState(false);
 
   async function handleBantuNarasi() {
     if (!kejadianKhusus.trim() || kejadianKhusus.trim() === KEJADIAN_DEFAULT) return;
-    setErrorNarasi('');
     setMerapikanNarasi(true);
     try {
       const res = await fetch('/api/ai-narasi', {
@@ -54,7 +58,7 @@ export default function IsiBeritaAcaraPage({
       setKejadianKhusus(data.narasi);
       setNarasiDibantuAI(true);
     } catch (err) {
-      setErrorNarasi(err instanceof Error ? err.message : 'Gagal merapikan narasi.');
+      showToast(err instanceof Error ? err.message : 'Gagal merapikan narasi.', 'error');
     } finally {
       setMerapikanNarasi(false);
     }
@@ -86,11 +90,10 @@ export default function IsiBeritaAcaraPage({
   const pesertaTidakHadir =
     pesertaTerdaftar !== '' && pesertaHadir !== ''
       ? Math.max(0, Number(pesertaTerdaftar) - Number(pesertaHadir))
-      : '';
+      : '—';
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
 
     const payload = {
       pengawas1,
@@ -108,7 +111,7 @@ export default function IsiBeritaAcaraPage({
 
     const errorValidasi = validasiFormBA(payload, { wajibkanFoto: true });
     if (errorValidasi) {
-      setError(errorValidasi);
+      showToast(errorValidasi, 'error');
       return;
     }
 
@@ -121,9 +124,10 @@ export default function IsiBeritaAcaraPage({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan berita acara.');
+      showToast('Berita acara berhasil disimpan.', 'success');
       router.push(`/berita-acara/${data.baId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menyimpan berita acara.');
+      showToast(err instanceof Error ? err.message : 'Gagal menyimpan berita acara.', 'error');
     } finally {
       setMengirim(false);
     }
@@ -131,7 +135,7 @@ export default function IsiBeritaAcaraPage({
 
   if (jadwal === undefined) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-10 text-center text-sm text-gray-400">
+      <main className="mx-auto max-w-[600px] px-4 py-10 text-center text-sm text-faint">
         {errorMuat || 'Memuat...'}
       </main>
     );
@@ -139,22 +143,20 @@ export default function IsiBeritaAcaraPage({
 
   if (jadwal === null) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-10 text-center">
-        <p className="text-sm text-gray-600">Jadwal ujian tidak ditemukan.</p>
+      <main className="mx-auto max-w-[600px] px-4 py-10 text-center">
+        <p className="text-sm text-faint">Jadwal ujian tidak ditemukan.</p>
       </main>
     );
   }
 
   if (jadwal.status === 'terisi') {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-10 text-center">
-        <p className="text-sm text-gray-600">
-          Berita acara untuk jadwal ini sudah diisi.
-        </p>
+      <main className="mx-auto max-w-[600px] px-4 py-10 text-center">
+        <p className="text-sm text-faint">Berita acara untuk jadwal ini sudah diisi.</p>
         {jadwal.beritaAcaraId && (
           <a
             href={`/berita-acara/${jadwal.beritaAcaraId}`}
-            className="mt-3 inline-block min-h-[44px] rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium leading-[28px] text-white hover:bg-primary-700"
+            className="mt-3 inline-block min-h-[44px] rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-primary-700"
           >
             Lihat Berita Acara
           </a>
@@ -164,153 +166,155 @@ export default function IsiBeritaAcaraPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6 pb-16">
-      <h1 className="text-lg font-semibold text-gray-900">Isi Berita Acara</h1>
+    <div className="mx-auto max-w-[600px] pb-[60px]">
+      <div className="flex items-center gap-3 bg-primary-600 px-[18px] py-4">
+        <Link
+          href="/"
+          className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-white/[0.14] text-base text-white"
+        >
+          ←
+        </Link>
+        <div className="text-[15px] font-extrabold text-white">Isi Berita Acara Ujian</div>
+      </div>
 
-      <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-sm">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Data Jadwal
-        </h2>
-        <dl className="grid grid-cols-2 gap-y-2">
-          <div className="col-span-2">
-            <dt className="text-xs text-gray-400">Periode</dt>
-            <dd className="text-gray-800">
-              {periode ? `${periode.jenis} ${periode.semester} ${periode.tahunAkademik}` : '-'}
-            </dd>
-          </div>
-          <div className="col-span-2">
-            <dt className="text-xs text-gray-400">Hari/Tanggal</dt>
-            <dd className="text-gray-800">{formatTanggalIndonesia(jadwal.tanggalStr)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-gray-400">Jam Terjadwal</dt>
-            <dd className="text-gray-800">{jadwal.jamMulai}–{jadwal.jamSelesai}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-gray-400">Ruangan</dt>
-            <dd className="text-gray-800">{jadwal.ruangan ?? '-'}</dd>
-          </div>
-          <div className="col-span-2">
-            <dt className="text-xs text-gray-400">Mata Kuliah</dt>
-            <dd className="text-gray-800">{jadwal.namaMK} ({jadwal.kodeMK})</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-gray-400">Prodi/Kelas</dt>
-            <dd className="text-gray-800">{jadwal.prodi} / {jadwal.kelas}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-gray-400">Dosen Pengajar</dt>
-            <dd className="text-gray-800">{jadwal.dosenPengajar}</dd>
-          </div>
-        </dl>
-      </section>
+      <div className="p-4">
+        <section className="mb-3.5 rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,60,30,0.06)] sm:px-[18px]">
+          <h2 className="mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-primary-600">
+            Data Jadwal (Otomatis)
+          </h2>
+          <dl className="grid grid-cols-2 gap-x-3.5 gap-y-2.5">
+            <div>
+              <dt className="text-[11px] font-semibold text-faint">Periode</dt>
+              <dd className="text-[13px] font-bold text-ink">
+                {periode ? `${periode.jenis} ${periode.semester} T.A. ${periode.tahunAkademik}` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold text-faint">Hari / Tanggal</dt>
+              <dd className="text-[13px] font-bold text-ink">{formatTanggalIndonesia(jadwal.tanggalStr)}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold text-faint">Jam Terjadwal</dt>
+              <dd className="text-[13px] font-bold text-ink">{jadwal.jamMulai} – {jadwal.jamSelesai}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold text-faint">Ruangan</dt>
+              <dd className="text-[13px] font-bold text-ink">{jadwal.ruangan ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold text-faint">Mata Kuliah</dt>
+              <dd className="text-[13px] font-bold text-ink">{jadwal.namaMK} ({jadwal.kodeMK})</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold text-faint">Prodi / Kelas</dt>
+              <dd className="text-[13px] font-bold text-ink">{jadwal.prodi} · {jadwal.kelas}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-[11px] font-semibold text-faint">Dosen Pengajar</dt>
+              <dd className="text-[13px] font-bold text-ink">{jadwal.dosenPengajar}</dd>
+            </div>
+          </dl>
+        </section>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-        <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-3.5 rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,60,30,0.06)] sm:px-[18px]"
+        >
+          <h2 className="text-[11.5px] font-bold uppercase tracking-wide text-primary-600">
+            Diisi Pengawas
+          </h2>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nama pengawas 1 *
-            </label>
+            <label className={labelCls}>Nama Pengawas 1 *</label>
             <input
               value={pengawas1}
               onChange={(e) => setPengawas1(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
+              placeholder="Nama lengkap"
+              className={inputCls}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nama pengawas 2
-            </label>
+            <label className={labelCls}>Nama Pengawas 2 (opsional)</label>
             <input
               value={pengawas2}
               onChange={(e) => setPengawas2(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
+              placeholder="Nama lengkap"
+              className={inputCls}
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Peserta Terdaftar *</label>
+              <input
+                type="number"
+                min={0}
+                value={pesertaTerdaftar}
+                onChange={(e) => setPesertaTerdaftar(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Peserta Hadir *</label>
+              <input
+                type="number"
+                min={0}
+                value={pesertaHadir}
+                onChange={(e) => setPesertaHadir(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+          </div>
+          <div className="rounded-[9px] bg-app px-3 py-2.5 text-[13px] font-semibold text-body">
+            Tidak hadir (otomatis): <span className="font-extrabold text-ink">{pesertaTidakHadir}</span>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Peserta terdaftar *
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={pesertaTerdaftar}
-              onChange={(e) => setPesertaTerdaftar(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Peserta hadir *
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={pesertaHadir}
-              onChange={(e) => setPesertaHadir(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Peserta tidak hadir (otomatis)
-            </label>
-            <input
-              disabled
-              value={pesertaTidakHadir}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-500"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Nama/NIM peserta tidak hadir
-            </label>
+            <label className={labelCls}>Nama / NIM Peserta Tidak Hadir (opsional)</label>
             <textarea
               value={daftarTidakHadir}
               onChange={(e) => setDaftarTidakHadir(e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="mis. Rudi Hartono (2022001102) — sakit"
+              className={`${inputCls} resize-y`}
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Jam Mulai Aktual *</label>
+              <input
+                type="time"
+                value={jamMulaiAktual}
+                onChange={(e) => setJamMulaiAktual(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Jam Selesai Aktual *</label>
+              <input
+                type="time"
+                value={jamSelesaiAktual}
+                onChange={(e) => setJamSelesaiAktual(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Jam mulai aktual *
-            </label>
-            <input
-              type="time"
-              value={jamMulaiAktual}
-              onChange={(e) => setJamMulaiAktual(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Jam selesai aktual *
-            </label>
-            <input
-              type="time"
-              value={jamSelesaiAktual}
-              onChange={(e) => setJamSelesaiAktual(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Jumlah berkas/lembar jawaban diserahkan
-            </label>
+            <label className={labelCls}>Jumlah Berkas / Lembar Jawaban Diserahkan</label>
             <input
               type="number"
               min={0}
               value={jumlahBerkas}
               onChange={(e) => setJumlahBerkas(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
+              className={inputCls}
             />
           </div>
-          <div className="sm:col-span-2">
+
+          <div>
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-700">
-                Kejadian khusus / catatan pelanggaran *
-              </label>
+              <label className={labelCls}>Kejadian Khusus / Catatan Pelanggaran *</label>
               <button
                 type="button"
                 onClick={handleBantuNarasi}
@@ -319,9 +323,9 @@ export default function IsiBeritaAcaraPage({
                   !kejadianKhusus.trim() ||
                   kejadianKhusus.trim() === KEJADIAN_DEFAULT
                 }
-                className="text-xs font-medium text-primary-600 hover:text-primary-700 disabled:opacity-40"
+                className="text-xs font-bold text-primary-600 hover:text-primary-700 disabled:opacity-40"
               >
-                {merapikanNarasi ? 'Merapikan...' : '✨ Bantu Narasi (AI)'}
+                {merapikanNarasi ? 'Merapikan...' : '✨ Bantu Narasi'}
               </button>
             </div>
             <textarea
@@ -330,50 +334,47 @@ export default function IsiBeritaAcaraPage({
                 setKejadianKhusus(e.target.value);
                 setNarasiDibantuAI(false);
               }}
-              rows={3}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              rows={2}
+              className={`${inputCls} resize-y`}
             />
             {narasiDibantuAI && (
-              <p className="mt-1 text-xs text-primary-600">
+              <p className="mt-1.5 text-[11.5px] font-semibold text-primary-600">
                 Teks dirapikan dengan bantuan AI — silakan tinjau sebelum menyimpan.
               </p>
             )}
-            {errorNarasi && (
-              <p className="mt-1 text-xs text-red-600">{errorNarasi}</p>
-            )}
           </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Foto bukti pelaksanaan *
-            </label>
-            <div className="mt-1">
+
+          <div>
+            <label className={labelCls}>Foto Bukti Pelaksanaan * (min 1, maks 3)</label>
+            <div className="mt-1.5">
               <UploadFotoInput jadwalId={params.jadwalId} onChange={setFotoBukti} />
             </div>
           </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Nama pengisi (penanggung jawab isian) *
-            </label>
+
+          <div>
+            <label className={labelCls}>Nama Pengisi (Penanggung Jawab Isian) *</label>
             <input
               value={namaPengisi}
               onChange={(e) => setNamaPengisi(e.target.value)}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 px-3 text-sm"
+              placeholder="Nama lengkap"
+              className={inputCls}
             />
           </div>
-        </div>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-        )}
+          <div className="rounded-[9px] border-[1.5px] border-warn-border bg-warn-bg px-3 py-2.5 text-xs font-semibold text-warn-text">
+            Setelah disimpan, berita acara akan terkunci dan tidak dapat diubah kembali oleh
+            publik.
+          </div>
 
-        <button
-          type="submit"
-          disabled={mengirim}
-          className="min-h-[44px] w-full rounded-lg bg-primary-600 px-4 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
-        >
-          {mengirim ? 'Menyimpan...' : 'Simpan Berita Acara'}
-        </button>
-      </form>
-    </main>
+          <button
+            type="submit"
+            disabled={mengirim}
+            className="min-h-[44px] w-full rounded-[11px] bg-primary-600 py-3.5 text-[15px] font-extrabold text-white hover:bg-primary-700 disabled:opacity-60"
+          >
+            {mengirim ? 'Menyimpan...' : 'Simpan Berita Acara'}
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }

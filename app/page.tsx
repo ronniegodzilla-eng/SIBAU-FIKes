@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   collection,
   getDocs,
@@ -105,107 +106,136 @@ export default function DashboardPage() {
     return true;
   });
 
+  const periodeAktifLabel = periodeAktif
+    ? `${periodeAktif.jenis} ${periodeAktif.semester} T.A. ${periodeAktif.tahunAkademik}`
+    : '';
+  const todayHeaderLabel =
+    tanggal === hariIniStrWIB() ? 'Ujian Hari Ini' : formatTanggalIndonesia(tanggal);
+
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6 pb-16">
-      <header className="mb-5">
-        <h1 className="text-xl font-semibold text-gray-900">SIBAU</h1>
-        <p className="text-sm text-gray-500">
-          Sistem Berita Acara Ujian — Fakultas Ilmu Kesehatan UIS
-        </p>
-      </header>
-
-      {periodeAktif === undefined && (
-        <p className="text-sm text-gray-400">Memuat...</p>
-      )}
-
-      {periodeAktif === null && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-center">
-          <p className="text-sm text-gray-600">Tidak ada periode ujian aktif.</p>
-          <p className="mt-1 text-xs text-gray-400">
-            Hubungi panitia UTS/UAS FIKes UIS jika ini tidak sesuai harapan.
-          </p>
-        </div>
-      )}
-
-      {error && (
-        <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-
-      {periodeAktif && (
-        <div className="space-y-5">
-          <PanelBelumDiisi daftar={belumDiisi} />
-
-          <section>
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <label className="block text-xs font-medium text-gray-500">
-                  Tanggal
-                </label>
-                <input
-                  type="date"
-                  value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
-                  className="mt-1 min-h-[44px] rounded-lg border border-gray-300 px-3 text-sm"
-                />
+    <div className="min-h-screen">
+      <div className="bg-gradient-to-br from-primary-600 to-primary-700 px-4 pb-[46px] pt-[22px]">
+        <div className="mx-auto flex max-w-[600px] items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-uis.png" alt="Logo UIS" className="h-[42px] w-[42px] object-contain" />
+            <div>
+              <div className="text-[15px] font-extrabold tracking-tight text-white">
+                SIBAU FIKes UIS
               </div>
-              <button
-                onClick={() => setTanggal(hariIniStrWIB())}
-                className="min-h-[44px] rounded-lg border border-gray-300 px-3 text-sm text-gray-600 hover:bg-gray-50"
-              >
-                Hari ini
-              </button>
+              <div className="text-[11.5px] font-medium text-primary-100">
+                Sistem Berita Acara Ujian
+              </div>
             </div>
-            <p className="mt-2 text-sm font-medium text-gray-700">
-              {formatTanggalIndonesia(tanggal)}
-            </p>
-          </section>
+          </div>
+          <Link
+            href="/admin/login"
+            className="whitespace-nowrap rounded-lg border border-white/35 bg-white/[0.14] px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/25"
+          >
+            Login Admin
+          </Link>
+        </div>
+      </div>
 
-          {jadwalHariItu.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={filterJam}
-                onChange={(e) => setFilterJam(e.target.value)}
-                className="min-h-[44px] rounded-lg border border-gray-300 px-3 text-sm"
-              >
-                <option value="">Semua jam</option>
-                {daftarJam.map((j) => (
-                  <option key={j} value={j}>
-                    {j}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filterProdi}
-                onChange={(e) => setFilterProdi(e.target.value)}
-                className="min-h-[44px] rounded-lg border border-gray-300 px-3 text-sm"
-              >
-                <option value="">Semua prodi</option>
-                {daftarProdi.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+      <main className="mx-auto -mt-[30px] max-w-[600px] px-4 pb-12">
+        <div className="mb-4 rounded-2xl bg-white p-4 shadow-[0_10px_30px_rgba(15,60,30,0.10)] sm:px-[18px]">
+          {periodeAktif ? (
+            <>
+              <div className="mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-primary-600">
+                {periodeAktifLabel}
+              </div>
+              <div className="flex flex-wrap items-end gap-2.5">
+                <div className="min-w-[150px] flex-1">
+                  <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+                    Tanggal
+                  </label>
+                  <input
+                    type="date"
+                    value={tanggal}
+                    onChange={(e) => setTanggal(e.target.value)}
+                    className="w-full rounded-[9px] border-[1.5px] border-line px-2.5 py-2.5 text-[13.5px] font-semibold text-ink"
+                  />
+                </div>
+                <div className="min-w-[120px]">
+                  <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+                    Sesi
+                  </label>
+                  <select
+                    value={filterJam}
+                    onChange={(e) => setFilterJam(e.target.value)}
+                    className="w-full rounded-[9px] border-[1.5px] border-line bg-white px-2.5 py-2.5 text-[13px] font-semibold text-ink"
+                  >
+                    <option value="">Semua Sesi</option>
+                    {daftarJam.map((j) => (
+                      <option key={j} value={j}>
+                        Sesi · {j}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="min-w-[150px] flex-1">
+                  <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+                    Prodi
+                  </label>
+                  <select
+                    value={filterProdi}
+                    onChange={(e) => setFilterProdi(e.target.value)}
+                    className="w-full rounded-[9px] border-[1.5px] border-line bg-white px-2.5 py-2.5 text-[13px] font-semibold text-ink"
+                  >
+                    <option value="">Semua Prodi</option>
+                    {daftarProdi.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </>
+          ) : periodeAktif === null ? (
+            <div className="py-2.5 text-center text-[13.5px] font-semibold text-faint">
+              Tidak ada periode ujian aktif.
             </div>
-          )}
-
-          {loading ? (
-            <p className="text-sm text-gray-400">Memuat jadwal...</p>
-          ) : jadwalTersaring.length === 0 ? (
-            <p className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
-              Tidak ada jadwal ujian pada tanggal ini.
-            </p>
           ) : (
-            <div className="space-y-3">
-              {jadwalTersaring.map((j) => (
-                <KartuJadwal key={j.id} jadwal={j} />
-              ))}
+            <div className="py-2.5 text-center text-[13.5px] font-semibold text-faint">
+              Memuat...
             </div>
           )}
         </div>
-      )}
-    </main>
+
+        {error && (
+          <p className="mb-4 rounded-lg bg-danger-bg px-3 py-2 text-sm text-danger-text">
+            {error}
+          </p>
+        )}
+
+        {periodeAktif && (
+          <>
+            <PanelBelumDiisi daftar={belumDiisi} />
+
+            <div className="mb-[11px] flex items-center justify-between">
+              <div className="text-[15px] font-extrabold text-ink">{todayHeaderLabel}</div>
+              <div className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-600">
+                {jadwalTersaring.length} ujian
+              </div>
+            </div>
+
+            {loading ? (
+              <p className="text-sm text-faint">Memuat jadwal...</p>
+            ) : jadwalTersaring.length === 0 ? (
+              <p className="rounded-2xl bg-white p-[30px] text-center text-[13.5px] font-semibold text-faint">
+                Tidak ada jadwal ujian untuk filter ini.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {jadwalTersaring.map((j) => (
+                  <KartuJadwal key={j.id} jadwal={j} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </div>
   );
 }

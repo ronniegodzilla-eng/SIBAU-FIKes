@@ -15,6 +15,7 @@ export interface Pejabat {
 export interface SettingsApp {
   namaUniversitas: string;
   namaFakultas: string;
+  alamat: string;
   logoUrl: string;
   pejabat: Pejabat;
   formatNomorBA: string;
@@ -48,6 +49,8 @@ export interface JadwalUjian {
   ruangan: string | null;
   status: StatusJadwal;
   beritaAcaraId: string | null;
+  /** Hanya diisi oleh GET /api/admin/jadwal untuk tabel rekap; tidak disimpan di dokumen jadwal_ujian. */
+  nomorBA?: string | null;
   createdAt: string;
   updatedAt: string;
 }

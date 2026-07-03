@@ -1,5 +1,6 @@
 import AdminGuard from '@/components/admin/AdminGuard';
-import NavAdmin from '@/components/admin/NavAdmin';
+import SidebarAdmin from '@/components/admin/SidebarAdmin';
+import TopBarAdmin from '@/components/admin/TopBarAdmin';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +11,12 @@ export default function AdminProtectedLayout({
 }) {
   return (
     <AdminGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavAdmin />
-        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <div className="flex min-h-screen">
+        <SidebarAdmin />
+        <div className="min-w-0 flex-1 bg-app">
+          <TopBarAdmin />
+          <main className="px-[26px] py-6">{children}</main>
+        </div>
       </div>
     </AdminGuard>
   );
