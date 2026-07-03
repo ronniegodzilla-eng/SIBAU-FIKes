@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rapikanNarasi } from '@/lib/gemini';
+import { rapikanNarasi } from '@/lib/groq';
 import { ambilIpDariRequest } from '@/lib/verify-admin';
 import { periksaRateLimit } from '@/lib/rate-limit';
 
