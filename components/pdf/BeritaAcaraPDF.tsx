@@ -116,11 +116,14 @@ export default function BeritaAcaraPDF({
   jadwal,
   periode,
   settings,
+  susulan = false,
 }: {
   ba: BeritaAcara;
   jadwal: JadwalUjian;
   periode: Periode;
   settings: SettingsApp;
+  /** Tandai dokumen sebagai berita acara ujian susulan (insidental). */
+  susulan?: boolean;
 }) {
   return (
     <Document>
@@ -143,7 +146,7 @@ export default function BeritaAcaraPDF({
 
         <View style={styles.judulWrap}>
           <Text style={styles.judul}>
-            Berita Acara Pelaksanaan Ujian {periode.jenis} Semester{' '}
+            Berita Acara Pelaksanaan Ujian{susulan ? ' Susulan' : ''} {periode.jenis} Semester{' '}
             {periode.semester.toUpperCase()} T.A. {periode.tahunAkademik}
           </Text>
           <Text style={styles.nomorBA}>Nomor: {ba.nomorBA}</Text>

@@ -160,7 +160,6 @@ export default function AdminJadwalPage() {
       {jadwalDiedit !== undefined && periodeId && (
         <JadwalModal
           periodeId={periodeId}
-          daftarProdi={daftarProdi}
           initial={jadwalDiedit}
           onClose={() => setJadwalDiedit(undefined)}
           onSaved={() => {

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { base64, mimeType, fileName, jadwalId } = body ?? {};
+    const { base64, mimeType, fileName, jadwalId, periodeId: periodeIdLangsung } = body ?? {};
 
     if (typeof base64 !== 'string' || !base64) {
       return NextResponse.json({ error: 'Data foto tidak ditemukan.' }, { status: 400 });
@@ -37,8 +37,11 @@ export async function POST(req: NextRequest) {
     if (typeof fileName !== 'string' || !fileName.trim()) {
       return NextResponse.json({ error: 'Nama file tidak valid.' }, { status: 400 });
     }
-    if (typeof jadwalId !== 'string' || !jadwalId) {
-      return NextResponse.json({ error: 'Jadwal tidak ditemukan.' }, { status: 400 });
+    if (
+      (typeof jadwalId !== 'string' || !jadwalId) &&
+      (typeof periodeIdLangsung !== 'string' || !periodeIdLangsung)
+    ) {
+      return NextResponse.json({ error: 'Jadwal atau periode tidak ditemukan.' }, { status: 400 });
     }
 
     const perkiraanBytes = Math.floor((base64.length * 3) / 4);
@@ -49,13 +52,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const jadwalSnap = await adminDb.collection('jadwal_ujian').doc(jadwalId).get();
-    if (!jadwalSnap.exists) {
-      return NextResponse.json({ error: 'Jadwal tidak ditemukan.' }, { status: 404 });
+    let periodeId = periodeIdLangsung as string | undefined;
+    if (!periodeId && typeof jadwalId === 'string') {
+      const jadwalSnap = await adminDb.collection('jadwal_ujian').doc(jadwalId).get();
+      if (!jadwalSnap.exists) {
+        return NextResponse.json({ error: 'Jadwal tidak ditemukan.' }, { status: 404 });
+      }
+      periodeId = jadwalSnap.data()!.periodeId as string;
     }
-    const jadwal = jadwalSnap.data()!;
 
-    const periodeSnap = await adminDb.collection('periode').doc(jadwal.periodeId).get();
+    const periodeSnap = await adminDb.collection('periode').doc(periodeId!).get();
     if (!periodeSnap.exists) {
       return NextResponse.json({ error: 'Periode ujian tidak ditemukan.' }, { status: 404 });
     }

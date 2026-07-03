@@ -1,6 +1,8 @@
 // Validasi baris jadwal ujian — dipakai bareng oleh create manual (F-07)
 // dan import massal Excel (F-07) agar aturan konsisten di satu tempat.
 
+import { DAFTAR_PRODI } from '@/lib/prodi';
+
 const REGEX_TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 const REGEX_JAM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -35,8 +37,11 @@ export function validasiBarisJadwal(baris: BarisJadwalMentah): string | null {
   if (typeof baris.namaMK !== 'string' || !baris.namaMK.trim()) {
     return 'Nama mata kuliah wajib diisi.';
   }
-  if (typeof baris.prodi !== 'string' || !baris.prodi.trim()) {
-    return 'Prodi wajib diisi.';
+  if (
+    typeof baris.prodi !== 'string' ||
+    !(DAFTAR_PRODI as readonly string[]).includes(baris.prodi.trim())
+  ) {
+    return `Prodi harus salah satu dari: ${DAFTAR_PRODI.join(', ')}.`;
   }
   if (typeof baris.kelas !== 'string' || !baris.kelas.trim()) {
     return 'Kelas wajib diisi.';

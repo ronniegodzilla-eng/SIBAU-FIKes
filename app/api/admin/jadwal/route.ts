@@ -6,16 +6,30 @@ import { tulisAuditLog } from '@/lib/audit';
 import { buatTimestampTengahHariWIB } from '@/lib/tanggal';
 import { validasiBarisJadwal, kunciUnikJadwal } from '@/lib/validasi-jadwal';
 
-/** Ambil nomorBA untuk sekumpulan beritaAcaraId (chunk 30 sesuai batas query 'in'). */
-async function ambilPetaNomorBA(ids: string[]): Promise<Map<string, string>> {
-  const peta = new Map<string, string>();
+interface RingkasBA {
+  nomorBA: string;
+  pengawas1: string;
+  pengawas2: string | null;
+}
+
+/** Ambil ringkasan BA (nomor + nama pengawas) untuk sekumpulan beritaAcaraId
+ *  (chunk 30 sesuai batas query 'in'). */
+async function ambilPetaRingkasBA(ids: string[]): Promise<Map<string, RingkasBA>> {
+  const peta = new Map<string, RingkasBA>();
   for (let i = 0; i < ids.length; i += 30) {
     const chunk = ids.slice(i, i + 30);
     const snap = await adminDb
       .collection('berita_acara')
       .where(FieldPath.documentId(), 'in', chunk)
       .get();
-    snap.docs.forEach((d) => peta.set(d.id, d.data().nomorBA as string));
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      peta.set(d.id, {
+        nomorBA: data.nomorBA as string,
+        pengawas1: data.pengawas1 as string,
+        pengawas2: (data.pengawas2 as string | null) ?? null,
+      });
+    });
   }
   return peta;
 }
@@ -33,9 +47,12 @@ export async function GET(req: NextRequest) {
       .map((j: any) => j.beritaAcaraId)
       .filter((id: unknown): id is string => typeof id === 'string');
     if (idBA.length > 0) {
-      const petaNomorBA = await ambilPetaNomorBA(idBA);
+      const petaRingkasBA = await ambilPetaRingkasBA(idBA);
       jadwal.forEach((j: any) => {
-        if (j.beritaAcaraId) j.nomorBA = petaNomorBA.get(j.beritaAcaraId) ?? null;
+        const ringkas = j.beritaAcaraId ? petaRingkasBA.get(j.beritaAcaraId) : undefined;
+        j.nomorBA = ringkas?.nomorBA ?? null;
+        j.pengawas1 = ringkas?.pengawas1 ?? null;
+        j.pengawas2 = ringkas?.pengawas2 ?? null;
       });
     }
 

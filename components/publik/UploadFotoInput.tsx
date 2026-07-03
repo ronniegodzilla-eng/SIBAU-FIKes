@@ -30,9 +30,13 @@ function fileKeBase64(file: Blob): Promise<string> {
 
 export default function UploadFotoInput({
   jadwalId,
+  periodeId,
   onChange,
 }: {
-  jadwalId: string;
+  /** Untuk BA reguler (jadwal sudah ada). Beri salah satu: jadwalId atau periodeId. */
+  jadwalId?: string;
+  /** Untuk BA susulan (belum ada dokumen jadwal_ujian). */
+  periodeId?: string;
   onChange: (foto: FotoBukti[]) => void;
 }) {
   const [items, setItems] = useState<ItemFoto[]>([]);
@@ -56,7 +60,7 @@ export default function UploadFotoInput({
           base64,
           mimeType: file.type,
           fileName: file.name,
-          jadwalId,
+          ...(jadwalId ? { jadwalId } : { periodeId }),
         }),
       });
       const data = await res.json();

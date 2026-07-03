@@ -14,6 +14,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /berita_acara_susulan/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /periode/{id} {
       allow read: if true;
       allow write: if false;

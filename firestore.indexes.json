@@ -25,6 +25,14 @@
         { "fieldPath": "tanggalStr", "order": "ASCENDING" },
         { "fieldPath": "jamMulai", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "berita_acara_susulan",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodeId", "order": "ASCENDING" },
+        { "fieldPath": "tanggalStr", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

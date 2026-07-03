@@ -30,6 +30,9 @@ export interface Periode {
   tanggalSelesai: string; // ISO date string
   aktif: boolean;
   counterBA: number;
+  /** Counter terpisah untuk penomoran BA ujian susulan (insidental, tidak
+   *  terjadwal) — lihat BeritaAcaraSusulan. */
+  counterBASusulan: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,8 +52,12 @@ export interface JadwalUjian {
   ruangan: string | null;
   status: StatusJadwal;
   beritaAcaraId: string | null;
-  /** Hanya diisi oleh GET /api/admin/jadwal untuk tabel rekap; tidak disimpan di dokumen jadwal_ujian. */
+  /** Field di bawah ini hanya diisi oleh GET /api/admin/jadwal untuk tabel
+   *  rekap (join dari dokumen berita_acara terkait); tidak disimpan di
+   *  dokumen jadwal_ujian itu sendiri. */
   nomorBA?: string | null;
+  pengawas1?: string | null;
+  pengawas2?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,11 +90,72 @@ export interface BeritaAcara {
   updatedAt: string;
 }
 
+// Berita acara ujian susulan — diinput insidental oleh pengawas (tidak lewat
+// jadwal_ujian yang sudah terjadwal), karena itu field jadwal (tanggal, MK,
+// prodi, dst) digabung langsung ke dokumen ini alih-alih di-join dari
+// jadwal_ujian seperti BeritaAcara biasa. jamMulaiAktual/jamSelesaiAktual
+// dipakai ganda: sebagai "jam ujian" (header dokumen) sekaligus jam aktual.
+export interface BeritaAcaraSusulan {
+  id: string;
+  periodeId: string;
+  tanggalStr: string; // "YYYY-MM-DD"
+  kodeMK: string;
+  namaMK: string;
+  prodi: string;
+  kelas: string;
+  dosenPengajar: string;
+  ruangan: string | null;
+  nomorBA: string;
+  pengawas1: string;
+  pengawas2: string | null;
+  pesertaTerdaftar: number;
+  pesertaHadir: number;
+  pesertaTidakHadir: number;
+  daftarTidakHadir: string | null;
+  jamMulaiAktual: string;
+  jamSelesaiAktual: string;
+  jumlahBerkas: number | null;
+  kejadianKhusus: string;
+  narasiDibantuAI: boolean;
+  fotoBukti: FotoBukti[]; // 1-3
+  namaPengisi: string;
+  locked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Payload untuk POST /api/berita-acara-susulan (form yang diisi pengawas)
+export interface SubmitBeritaAcaraSusulanPayload {
+  periodeId: string;
+  tanggalStr: string;
+  kodeMK: string;
+  namaMK: string;
+  prodi: string;
+  kelas: string;
+  dosenPengajar: string;
+  ruangan?: string | null;
+  pengawas1: string;
+  pengawas2?: string | null;
+  pesertaTerdaftar: number;
+  pesertaHadir: number;
+  daftarTidakHadir?: string | null;
+  jamMulaiAktual: string;
+  jamSelesaiAktual: string;
+  jumlahBerkas?: number | null;
+  kejadianKhusus: string;
+  narasiDibantuAI: boolean;
+  fotoBukti: FotoBukti[];
+  namaPengisi: string;
+}
+
 export type AksiAuditLog =
   | 'submit_ba'
   | 'edit_ba'
   | 'unlock_ba'
   | 'hapus_ba'
+  | 'submit_ba_susulan'
+  | 'unlock_ba_susulan'
+  | 'hapus_ba_susulan'
   | 'crud_jadwal'
   | 'import_jadwal'
   | 'crud_periode'

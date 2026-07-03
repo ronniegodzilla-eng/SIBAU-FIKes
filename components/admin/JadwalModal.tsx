@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastProvider';
 import { adminFetch, AdminFetchError } from '@/lib/admin-fetch';
 import { validasiBarisJadwal } from '@/lib/validasi-jadwal';
+import { DAFTAR_PRODI } from '@/lib/prodi';
 import type { JadwalUjian } from '@/lib/types';
 
 const labelCls = 'mb-1.5 block text-xs font-bold text-label';
@@ -26,13 +27,11 @@ interface JadwalModalNilai {
 
 export default function JadwalModal({
   periodeId,
-  daftarProdi,
   initial,
   onClose,
   onSaved,
 }: {
   periodeId: string;
-  daftarProdi: string[];
   initial: JadwalUjian | null;
   onClose: () => void;
   onSaved: () => void;
@@ -58,7 +57,7 @@ export default function JadwalModal({
           jamSelesai: '09:40',
           kodeMK: '',
           namaMK: '',
-          prodi: daftarProdi[0] ?? '',
+          prodi: DAFTAR_PRODI[0],
           kelas: '',
           dosenPengajar: '',
           ruangan: '',
@@ -148,17 +147,17 @@ export default function JadwalModal({
         </div>
         <div>
           <label className={labelCls}>Prodi</label>
-          <input
-            list="daftar-prodi-modal"
+          <select
             value={form.prodi}
             onChange={(e) => setForm({ ...form, prodi: e.target.value })}
-            className={inputCls}
-          />
-          <datalist id="daftar-prodi-modal">
-            {daftarProdi.map((p) => (
-              <option key={p} value={p} />
+            className={`${inputCls} bg-white`}
+          >
+            {DAFTAR_PRODI.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
             ))}
-          </datalist>
+          </select>
         </div>
         <div>
           <label className={labelCls}>Kelas</label>

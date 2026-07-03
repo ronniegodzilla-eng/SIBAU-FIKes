@@ -128,12 +128,20 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <Link
-            href="/admin/login"
-            className="whitespace-nowrap rounded-lg border border-white/35 bg-white/[0.14] px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/25"
-          >
-            Login Admin
-          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <Link
+              href="/susulan"
+              className="whitespace-nowrap rounded-lg bg-warn-accent px-4 py-2.5 text-sm font-extrabold text-[#3D2E00] shadow-[0_3px_12px_rgba(0,0,0,0.18)] hover:brightness-95"
+            >
+              + Ujian Susulan
+            </Link>
+            <Link
+              href="/admin/login"
+              className="whitespace-nowrap rounded-lg border border-white/35 bg-white/[0.14] px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/25"
+            >
+              Login Admin
+            </Link>
+          </div>
         </div>
       </div>
 

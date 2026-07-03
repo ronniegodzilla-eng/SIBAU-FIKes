@@ -23,16 +23,18 @@ export default function TombolUnduhPDF({
   jadwal,
   periode,
   settings,
+  susulan = false,
 }: {
   ba: BeritaAcara;
   jadwal: JadwalUjian;
   periode: Periode;
   settings: SettingsApp;
+  susulan?: boolean;
 }) {
   return (
     <PDFDownloadLink
       document={
-        <BeritaAcaraPDF ba={ba} jadwal={jadwal} periode={periode} settings={settings} />
+        <BeritaAcaraPDF ba={ba} jadwal={jadwal} periode={periode} settings={settings} susulan={susulan} />
       }
       fileName={`${ba.nomorBA.replace(/\//g, '-')}.pdf`}
       className="flex min-h-[38px] items-center justify-center whitespace-nowrap rounded-[9px] bg-warn-accent px-3.5 text-[12.5px] font-extrabold text-[#3D2E00] hover:brightness-95"

@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
         tanggalSelesai: new Date(body.tanggalSelesai),
         aktif,
         counterBA: 0,
+        counterBASusulan: 0,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
