@@ -114,8 +114,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="bg-gradient-to-br from-primary-600 to-primary-700 px-4 pb-[46px] pt-[22px]">
-        <div className="mx-auto flex max-w-[600px] items-center justify-between gap-3">
+      <div className="bg-gradient-to-br from-primary-600 to-primary-700 px-4 pb-[46px] pt-[22px] lg:px-8">
+        <div className="mx-auto flex max-w-[600px] items-center justify-between gap-3 lg:max-w-6xl">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-uis.png" alt="Logo UIS" className="h-[42px] w-[42px] object-contain" />
@@ -137,7 +137,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <main className="mx-auto -mt-[30px] max-w-[600px] px-4 pb-12">
+      <main className="mx-auto -mt-[30px] max-w-[600px] px-4 pb-12 lg:max-w-6xl lg:px-8">
         <div className="mb-4 rounded-2xl bg-white p-4 shadow-[0_10px_30px_rgba(15,60,30,0.10)] sm:px-[18px]">
           {periodeAktif ? (
             <>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
                 Tidak ada jadwal ujian untuk filter ini.
               </p>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                 {jadwalTersaring.map((j) => (
                   <KartuJadwal key={j.id} jadwal={j} />
                 ))}

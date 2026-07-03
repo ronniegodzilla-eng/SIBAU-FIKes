@@ -166,8 +166,8 @@ export default function IsiBeritaAcaraPage({
   }
 
   return (
-    <div className="mx-auto max-w-[600px] pb-[60px]">
-      <div className="flex items-center gap-3 bg-primary-600 px-[18px] py-4">
+    <div className="pb-[60px]">
+      <div className="flex items-center gap-3 bg-primary-600 px-[18px] py-4 lg:px-8">
         <Link
           href="/"
           className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-white/[0.14] text-base text-white"
@@ -177,8 +177,8 @@ export default function IsiBeritaAcaraPage({
         <div className="text-[15px] font-extrabold text-white">Isi Berita Acara Ujian</div>
       </div>
 
-      <div className="p-4">
-        <section className="mb-3.5 rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,60,30,0.06)] sm:px-[18px]">
+      <div className="p-4 lg:mx-auto lg:grid lg:max-w-5xl lg:grid-cols-[320px_1fr] lg:items-start lg:gap-5 lg:p-8">
+        <section className="mb-3.5 rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,60,30,0.06)] sm:px-[18px] lg:sticky lg:top-6 lg:mb-0">
           <h2 className="mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-primary-600">
             Data Jadwal (Otomatis)
           </h2>

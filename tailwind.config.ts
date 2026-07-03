@@ -52,8 +52,12 @@ const config: Config = {
         app: '#F5F6F1',
       },
       fontFamily: {
-        sans: ['var(--font-jakarta)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-source-serif)', 'ui-serif', 'Georgia', 'serif'],
+        // Dimuat via <link> Google Fonts di app/layout.tsx (bukan
+        // next/font/google) — menghindari fetch banyak weight saat
+        // compile dev server yang bisa membuat `next dev` macet di
+        // jaringan lambat/terbatas.
+        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'ui-serif', 'Georgia', 'serif'],
       },
     },
   },

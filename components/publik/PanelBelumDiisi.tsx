@@ -13,7 +13,7 @@ export default function PanelBelumDiisi({ daftar }: { daftar: JadwalUjian[] }) {
       <p className="mb-3 text-xs font-medium text-danger-text">
         Diurutkan dari yang paling lama tertunggak.
       </p>
-      <ul className="flex flex-col gap-2">
+      <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
         {daftar.map((j) => (
           <li
             key={j.id}

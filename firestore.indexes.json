@@ -16,6 +16,15 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "tanggalStr", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "jadwal_ujian",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodeId", "order": "ASCENDING" },
+        { "fieldPath": "tanggalStr", "order": "ASCENDING" },
+        { "fieldPath": "jamMulai", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
