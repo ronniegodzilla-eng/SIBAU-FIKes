@@ -4,23 +4,27 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
+import { useAdminRole } from '@/components/admin/AdminGuard';
 
 const MENU = [
   { href: '/admin', label: 'Ringkasan' },
-  { href: '/admin/periode', label: 'Periode Ujian' },
+  { href: '/admin/periode', label: 'Periode Ujian', fullAdminOnly: true },
   { href: '/admin/jadwal', label: 'Jadwal Ujian' },
   { href: '/admin/rekap', label: 'Rekap & Monitoring' },
-  { href: '/admin/pengaturan', label: 'Pengaturan' },
+  { href: '/admin/pengaturan', label: 'Pengaturan', fullAdminOnly: true },
 ];
 
 export default function SidebarAdmin() {
   const pathname = usePathname();
   const router = useRouter();
+  const { role } = useAdminRole();
 
   async function handleLogout() {
     await signOut(auth);
     router.replace('/admin/login');
   }
+
+  const menuTampil = MENU.filter((item) => !item.fullAdminOnly || role === 'admin');
 
   return (
     <div className="flex w-[230px] shrink-0 flex-col bg-primary-700 p-3.5 text-white">
@@ -29,12 +33,14 @@ export default function SidebarAdmin() {
         <img src="/logo-uis.png" alt="Logo UIS" className="h-[34px] w-[34px] object-contain" />
         <div>
           <div className="text-[13.5px] font-extrabold">SIBAU Admin</div>
-          <div className="text-[10.5px] text-primary-100">Panitia FIKes UIS</div>
+          <div className="text-[10.5px] text-primary-100">
+            {role === 'co_admin' ? 'Co-Admin FIKes UIS' : 'Panitia FIKes UIS'}
+          </div>
         </div>
       </div>
 
       <nav className="flex flex-col gap-[3px]">
-        {MENU.map((item) => {
+        {menuTampil.map((item) => {
           const aktif =
             item.href === '/admin' ? pathname === '/admin' : pathname?.startsWith(item.href);
           return (

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAdminToken, ambilIpDariRequest, AdminAuthError } from '@/lib/verify-admin';
+import { verifyAdminToken, wajibkanFullAdmin, ambilIpDariRequest, AdminAuthError } from '@/lib/verify-admin';
 import { tulisAuditLog } from '@/lib/audit';
 
 function validasiPengaturan(body: any): string | null {
@@ -29,6 +29,7 @@ function validasiPengaturan(body: any): string | null {
 export async function PUT(req: NextRequest) {
   try {
     const admin = await verifyAdminToken(req);
+    wajibkanFullAdmin(admin);
     const body = await req.json();
 
     const errorValidasi = validasiPengaturan(body);

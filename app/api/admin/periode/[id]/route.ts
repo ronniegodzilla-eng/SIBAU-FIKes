@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAdminToken, ambilIpDariRequest, AdminAuthError } from '@/lib/verify-admin';
+import { verifyAdminToken, wajibkanFullAdmin, ambilIpDariRequest, AdminAuthError } from '@/lib/verify-admin';
 import { tulisAuditLog } from '@/lib/audit';
 
 export async function PUT(
@@ -10,6 +10,7 @@ export async function PUT(
 ) {
   try {
     const admin = await verifyAdminToken(req);
+    wajibkanFullAdmin(admin);
     const body = await req.json();
     const ref = adminDb.collection('periode').doc(params.id);
 
@@ -70,6 +71,7 @@ export async function DELETE(
 ) {
   try {
     const admin = await verifyAdminToken(req);
+    wajibkanFullAdmin(admin);
     const ref = adminDb.collection('periode').doc(params.id);
     const snap = await ref.get();
     if (!snap.exists) {

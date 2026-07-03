@@ -148,6 +148,16 @@ export interface SubmitBeritaAcaraSusulanPayload {
   namaPengisi: string;
 }
 
+export type AdminRole = 'admin' | 'co_admin';
+
+export interface AdminAccount {
+  uid: string;
+  email: string;
+  role: AdminRole;
+  createdAt: string;
+  createdBy: string;
+}
+
 export type AksiAuditLog =
   | 'submit_ba'
   | 'edit_ba'
@@ -160,7 +170,9 @@ export type AksiAuditLog =
   | 'import_jadwal'
   | 'crud_periode'
   | 'update_pengaturan'
-  | 'login_admin';
+  | 'login_admin'
+  | 'buat_co_admin'
+  | 'hapus_co_admin';
 
 export interface AuditLog {
   id: string;

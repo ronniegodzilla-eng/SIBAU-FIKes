@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase-client';
 import { adminFetch, AdminFetchError } from '@/lib/admin-fetch';
 import { useToast } from '@/components/ui/ToastProvider';
 import { FORMAT_NOMOR_BA_DEFAULT } from '@/lib/nomor-ba';
+import KelolaCoAdmin from '@/components/admin/KelolaCoAdmin';
 
 const KOSONG = {
   namaUniversitas: 'Universitas Ibnu Sina',
@@ -178,6 +179,8 @@ export default function AdminPengaturanPage() {
           {menyimpan ? 'Menyimpan...' : 'Simpan Pengaturan'}
         </button>
       </form>
+
+      <KelolaCoAdmin />
     </div>
   );
 }

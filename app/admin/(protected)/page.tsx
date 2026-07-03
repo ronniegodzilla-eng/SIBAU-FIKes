@@ -10,11 +10,16 @@ const LABEL_AKSI: Record<string, string> = {
   edit_ba: 'Berita acara diedit',
   unlock_ba: 'Berita acara dibuka kuncinya',
   hapus_ba: 'Berita acara dihapus',
+  submit_ba_susulan: 'Berita acara susulan disimpan',
+  unlock_ba_susulan: 'Berita acara susulan dibuka kuncinya',
+  hapus_ba_susulan: 'Berita acara susulan dihapus',
   crud_jadwal: 'Jadwal diubah',
   import_jadwal: 'Jadwal diimpor',
   crud_periode: 'Periode diubah',
   update_pengaturan: 'Pengaturan diperbarui',
   login_admin: 'Admin login',
+  buat_co_admin: 'Co-admin ditambahkan',
+  hapus_co_admin: 'Co-admin dihapus',
 };
 
 interface AuditLogApi extends Omit<AuditLog, 'timestamp'> {

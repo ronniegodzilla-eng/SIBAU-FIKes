@@ -30,5 +30,9 @@ service cloud.firestore {
       allow read: if false;
       allow write: if false;
     }
+    match /admins/{id} {
+      allow read: if false;
+      allow write: if false;
+    }
   }
 }
