@@ -27,8 +27,8 @@ export default function SidebarAdmin() {
   const menuTampil = MENU.filter((item) => !item.fullAdminOnly || role === 'admin');
 
   return (
-    <div className="flex w-[230px] shrink-0 flex-col bg-primary-700 p-3.5 text-white">
-      <div className="flex items-center gap-2.5 px-2 pb-[22px] pt-1.5">
+    <div className="sticky top-0 flex h-screen w-[230px] shrink-0 flex-col overflow-y-auto bg-primary-700 p-3.5 text-white">
+      <div className="flex items-center gap-2.5 px-2 pb-3.5 pt-1.5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-uis.png" alt="Logo UIS" className="h-[34px] w-[34px] object-contain" />
         <div>
@@ -38,6 +38,13 @@ export default function SidebarAdmin() {
           </div>
         </div>
       </div>
+
+      <button
+        onClick={handleLogout}
+        className="mb-3.5 rounded-[9px] border border-white/25 px-3 py-2.5 text-left text-[12.5px] font-bold text-white hover:bg-white/10"
+      >
+        ⎋ Keluar
+      </button>
 
       <nav className="flex flex-col gap-[3px]">
         {menuTampil.map((item) => {
@@ -61,15 +68,6 @@ export default function SidebarAdmin() {
           );
         })}
       </nav>
-
-      <div className="flex-1" />
-
-      <button
-        onClick={handleLogout}
-        className="rounded-[9px] border border-white/25 px-3 py-2.5 text-left text-[12.5px] font-bold text-white hover:bg-white/10"
-      >
-        ⎋ Keluar
-      </button>
     </div>
   );
 }
