@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [filterJam, setFilterJam] = useState('');
   const [filterProdi, setFilterProdi] = useState('');
+  const [cari, setCari] = useState('');
 
   useEffect(() => {
     async function muatPeriode() {
@@ -103,6 +104,11 @@ export default function DashboardPage() {
   const jadwalTersaring = jadwalHariItu.filter((j) => {
     if (filterJam && j.jamMulai !== filterJam) return false;
     if (filterProdi && j.prodi !== filterProdi) return false;
+    if (cari) {
+      const q = cari.toLowerCase();
+      const gabungan = `${j.namaMK} ${j.dosenPengajar}`.toLowerCase();
+      if (!gabungan.includes(q)) return false;
+    }
     return true;
   });
 
@@ -151,6 +157,15 @@ export default function DashboardPage() {
             <>
               <div className="mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-primary-600">
                 {periodeAktifLabel}
+              </div>
+              <div className="mb-2.5">
+                <input
+                  type="text"
+                  value={cari}
+                  onChange={(e) => setCari(e.target.value)}
+                  placeholder="Cari mata kuliah atau nama dosen..."
+                  className="w-full rounded-[9px] border-[1.5px] border-line px-3 py-2.5 text-[13.5px] text-ink"
+                />
               </div>
               <div className="flex flex-wrap items-end gap-2.5">
                 <div className="min-w-[150px] flex-1">
