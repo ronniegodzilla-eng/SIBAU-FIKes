@@ -9,6 +9,7 @@ import { hariIniStrWIB } from '@/lib/tanggal';
 import { DAFTAR_PRODI } from '@/lib/prodi';
 import { validasiFormSusulan } from '@/lib/validasi-susulan';
 import { useToast } from '@/components/ui/ToastProvider';
+import ComboboxCari from '@/components/ui/ComboboxCari';
 import UploadFotoInput from '@/components/publik/UploadFotoInput';
 import type { Periode, FotoBukti } from '@/lib/types';
 
@@ -34,7 +35,6 @@ export default function SusulanPage() {
   const [tanggalStr, setTanggalStr] = useState(hariIniStrWIB());
   const [daftarJadwalProdi, setDaftarJadwalProdi] = useState<BarisJadwalRingkas[]>([]);
   const [modeManual, setModeManual] = useState(false);
-  const [cariMK, setCariMK] = useState('');
   const [namaMKPilihan, setNamaMKPilihan] = useState('');
   const [kelasPilihan, setKelasPilihan] = useState('');
   const [kodeMK, setKodeMK] = useState('');
@@ -80,7 +80,6 @@ export default function SusulanPage() {
     setKelas('');
     setDosenPengajar('');
     setModeManual(false);
-    setCariMK('');
     if (!periodeAktif || !prodi) {
       setDaftarJadwalProdi([]);
       return;
@@ -117,12 +116,6 @@ export default function SusulanPage() {
     () => Array.from(new Set(daftarJadwalProdi.map((j) => j.namaMK))).sort(),
     [daftarJadwalProdi]
   );
-
-  const daftarNamaMKTersaring = useMemo(() => {
-    if (!cariMK.trim()) return daftarNamaMK;
-    const q = cariMK.trim().toLowerCase();
-    return daftarNamaMK.filter((nm) => nm.toLowerCase().includes(q));
-  }, [daftarNamaMK, cariMK]);
 
   const daftarKelasUntukMK = useMemo(
     () =>
@@ -315,33 +308,16 @@ export default function SusulanPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className={labelCls}>Nama Mata Kuliah *</label>
-                {daftarNamaMK.length > 0 && (
-                  <input
-                    type="text"
-                    value={cariMK}
-                    onChange={(e) => setCariMK(e.target.value)}
-                    placeholder="Cari mata kuliah..."
-                    className={inputCls}
+                <div className="mt-1.5">
+                  <ComboboxCari
+                    value={namaMKPilihan}
+                    onChange={handlePilihNamaMK}
+                    options={daftarNamaMK}
+                    placeholder="Ketik untuk cari mata kuliah..."
+                    noHasilLabel="Tidak ada mata kuliah yang cocok."
+                    className="min-h-[44px] w-full rounded-[9px] border-[1.5px] border-line px-3 py-2.5 text-sm text-ink box-border"
                   />
-                )}
-                <select
-                  value={namaMKPilihan}
-                  onChange={(e) => handlePilihNamaMK(e.target.value)}
-                  className={`${inputCls} bg-white`}
-                >
-                  <option value="" disabled>
-                    {daftarNamaMK.length === 0
-                      ? 'Tidak ada data jadwal untuk prodi ini'
-                      : daftarNamaMKTersaring.length === 0
-                        ? 'Tidak ada mata kuliah yang cocok'
-                        : 'Pilih mata kuliah dari jadwal'}
-                  </option>
-                  {daftarNamaMKTersaring.map((nm) => (
-                    <option key={nm} value={nm}>
-                      {nm}
-                    </option>
-                  ))}
-                </select>
+                </div>
               </div>
 
               {namaMKPilihan && (
