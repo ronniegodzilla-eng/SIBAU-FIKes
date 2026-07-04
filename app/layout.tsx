@@ -37,6 +37,9 @@ export default function RootLayout({
         <ToastProvider>
           <ConfirmProvider>{children}</ConfirmProvider>
         </ToastProvider>
+        <footer className="border-t border-line bg-white px-4 py-3 text-center text-[11px] text-faint">
+          © {new Date().getFullYear()} Roni Saputra, S.Si, M.Si · Kontak: ronniegodzilla@gmail.com
+        </footer>
       </body>
     </html>
   );
