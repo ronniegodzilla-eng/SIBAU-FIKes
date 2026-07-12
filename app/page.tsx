@@ -59,26 +59,28 @@ export default function DashboardPage() {
       setLoading(true);
       setError('');
       try {
-        const snapHariIni = await getDocs(
-          query(
-            collection(db, 'jadwal_ujian'),
-            where('periodeId', '==', periodeAktif!.id),
-            where('tanggalStr', '==', tanggal),
-            orderBy('jamMulai', 'asc')
-          )
-        );
+        const [snapHariIni, snapTertunggak] = await Promise.all([
+          getDocs(
+            query(
+              collection(db, 'jadwal_ujian'),
+              where('periodeId', '==', periodeAktif!.id),
+              where('tanggalStr', '==', tanggal),
+              orderBy('jamMulai', 'asc')
+            )
+          ),
+          getDocs(
+            query(
+              collection(db, 'jadwal_ujian'),
+              where('periodeId', '==', periodeAktif!.id),
+              where('status', '==', 'belum_diisi'),
+              where('tanggalStr', '<=', hariIniStrWIB()),
+              orderBy('tanggalStr', 'asc'),
+              limit(20)
+            )
+          ),
+        ]);
         setJadwalHariItu(
           snapHariIni.docs.map((d) => ({ id: d.id, ...d.data() }) as unknown as JadwalUjian)
-        );
-
-        const snapTertunggak = await getDocs(
-          query(
-            collection(db, 'jadwal_ujian'),
-            where('periodeId', '==', periodeAktif!.id),
-            where('status', '==', 'belum_diisi'),
-            where('tanggalStr', '<=', hariIniStrWIB()),
-            orderBy('tanggalStr', 'asc')
-          )
         );
         setBelumDiisi(
           snapTertunggak.docs.map((d) => ({ id: d.id, ...d.data() }) as unknown as JadwalUjian)
