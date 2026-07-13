@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { formatTanggalIndonesia } from '@/lib/tanggal';
+import { urlThumbnailFoto } from '@/lib/foto';
 import type { BeritaAcara, JadwalUjian, Periode, SettingsApp } from '@/lib/types';
 
 // Font.register butuh URL yang bisa di-fetch saat generate PDF di browser —
@@ -199,7 +200,7 @@ export default function BeritaAcaraPDF({
             <View style={styles.fotoGrid}>
               {ba.fotoBukti.map((f) => (
                 // eslint-disable-next-line jsx-a11y/alt-text -- Image dari @react-pdf/renderer, bukan elemen HTML <img>
-                <Image key={f.fileId} src={f.url} style={styles.fotoItem} />
+                <Image key={f.fileId} src={urlThumbnailFoto(f.fileId)} style={styles.fotoItem} />
               ))}
             </View>
           </View>

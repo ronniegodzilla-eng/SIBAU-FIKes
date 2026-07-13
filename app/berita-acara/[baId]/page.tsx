@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { formatTanggalIndonesia } from '@/lib/tanggal';
 import TombolUnduhPDF from '@/components/pdf/TombolUnduhPDF';
+import { urlThumbnailFoto, urlLihatFoto } from '@/lib/foto';
 import type { BeritaAcara, JadwalUjian, Periode, SettingsApp } from '@/lib/types';
 
 export default function DetailBeritaAcaraPage({
@@ -225,13 +226,19 @@ export default function DetailBeritaAcaraPage({
             <div className="mb-2 text-[12.5px] text-[#444]">Lampiran Foto Bukti Pelaksanaan:</div>
             <div className="flex flex-wrap gap-2.5">
               {ba.fotoBukti.map((f) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <a
                   key={f.fileId}
-                  src={f.url}
-                  alt={f.namaFile}
-                  className="h-[90px] w-[120px] rounded-md border border-[#ddd] object-cover"
-                />
+                  href={urlLihatFoto(f.fileId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={urlThumbnailFoto(f.fileId)}
+                    alt={f.namaFile}
+                    className="h-[90px] w-[120px] rounded-md border border-[#ddd] object-cover"
+                  />
+                </a>
               ))}
             </div>
           </div>
