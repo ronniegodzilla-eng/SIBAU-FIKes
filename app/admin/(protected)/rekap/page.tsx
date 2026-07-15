@@ -128,6 +128,8 @@ export default function AdminRekapPage() {
       'Dosen Pengajar': j.dosenPengajar,
       Ruangan: j.ruangan ?? '-',
       Status: j.status === 'terisi' ? 'Terisi' : 'Belum Diisi',
+      'Mahasiswa Terdaftar': j.pesertaTerdaftar ?? '-',
+      'Mahasiswa Hadir': j.pesertaHadir ?? '-',
       'Pengawas 1': j.pengawas1 ?? '-',
       'Pengawas 2': j.pengawas2 ?? '-',
     }));
@@ -149,6 +151,8 @@ export default function AdminRekapPage() {
       'Dosen Pengajar': s.dosenPengajar,
       Ruangan: s.ruangan ?? '-',
       'Nomor BA': s.nomorBA,
+      'Mahasiswa Terdaftar': s.pesertaTerdaftar,
+      'Mahasiswa Hadir': s.pesertaHadir,
       'Pengawas 1': s.pengawas1,
       'Pengawas 2': s.pengawas2 ?? '-',
     }));
@@ -329,6 +333,7 @@ export default function AdminRekapPage() {
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">MK</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">PRODI/KELAS</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">STATUS</th>
+                <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">MAHASISWA</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">PENGAWAS</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">NOMOR BA</th>
                 <th className="px-3.5 py-2.5 text-right text-[11px] font-semibold text-muted">AKSI</th>
@@ -337,7 +342,7 @@ export default function AdminRekapPage() {
             <tbody>
               {tersaring.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3.5 py-6 text-center text-faint">
+                  <td colSpan={8} className="px-3.5 py-6 text-center text-faint">
                     Tidak ada data.
                   </td>
                 </tr>
@@ -362,6 +367,16 @@ export default function AdminRekapPage() {
                     >
                       {j.status === 'terisi' ? 'Terisi' : 'Belum Diisi'}
                     </span>
+                  </td>
+                  <td className="whitespace-nowrap px-3.5 py-2.5 text-body">
+                    {j.pesertaTerdaftar != null ? (
+                      <>
+                        <div>Terdaftar: {j.pesertaTerdaftar}</div>
+                        <div className="text-[11px] text-faint">Hadir: {j.pesertaHadir ?? 0}</div>
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="px-3.5 py-2.5 text-body">
                     {j.pengawas1 ? (
@@ -451,6 +466,7 @@ export default function AdminRekapPage() {
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">TANGGAL</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">MK</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">PRODI/KELAS</th>
+                <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">MAHASISWA</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">PENGAWAS</th>
                 <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted">NOMOR BA</th>
                 <th className="px-3.5 py-2.5 text-right text-[11px] font-semibold text-muted">AKSI</th>
@@ -459,7 +475,7 @@ export default function AdminRekapPage() {
             <tbody>
               {tersaringSusulan.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3.5 py-6 text-center text-faint">
+                  <td colSpan={7} className="px-3.5 py-6 text-center text-faint">
                     Tidak ada data ujian susulan.
                   </td>
                 </tr>
@@ -474,6 +490,10 @@ export default function AdminRekapPage() {
                     <div className="text-[11px] text-faint">{s.kodeMK}</div>
                   </td>
                   <td className="px-3.5 py-2.5 text-body">{s.prodi} / {s.kelas}</td>
+                  <td className="whitespace-nowrap px-3.5 py-2.5 text-body">
+                    <div>Terdaftar: {s.pesertaTerdaftar}</div>
+                    <div className="text-[11px] text-faint">Hadir: {s.pesertaHadir}</div>
+                  </td>
                   <td className="px-3.5 py-2.5 text-body">
                     <div>{s.pengawas1}</div>
                     {s.pengawas2 && <div className="text-[11px] text-faint">{s.pengawas2}</div>}

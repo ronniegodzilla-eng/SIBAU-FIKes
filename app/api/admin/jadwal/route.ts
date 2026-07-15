@@ -10,6 +10,8 @@ interface RingkasBA {
   nomorBA: string;
   pengawas1: string;
   pengawas2: string | null;
+  pesertaTerdaftar: number | null;
+  pesertaHadir: number | null;
 }
 
 /** Ambil ringkasan BA (nomor + nama pengawas) untuk sekumpulan beritaAcaraId
@@ -28,6 +30,8 @@ async function ambilPetaRingkasBA(ids: string[]): Promise<Map<string, RingkasBA>
         nomorBA: data.nomorBA as string,
         pengawas1: data.pengawas1 as string,
         pengawas2: (data.pengawas2 as string | null) ?? null,
+        pesertaTerdaftar: (data.pesertaTerdaftar as number | null) ?? null,
+        pesertaHadir: (data.pesertaHadir as number | null) ?? null,
       });
     });
   }
@@ -53,6 +57,8 @@ export async function GET(req: NextRequest) {
         j.nomorBA = ringkas?.nomorBA ?? null;
         j.pengawas1 = ringkas?.pengawas1 ?? null;
         j.pengawas2 = ringkas?.pengawas2 ?? null;
+        j.pesertaTerdaftar = ringkas?.pesertaTerdaftar ?? null;
+        j.pesertaHadir = ringkas?.pesertaHadir ?? null;
       });
     }
 

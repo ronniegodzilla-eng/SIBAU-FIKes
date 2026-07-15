@@ -58,6 +58,8 @@ export interface JadwalUjian {
   nomorBA?: string | null;
   pengawas1?: string | null;
   pengawas2?: string | null;
+  pesertaTerdaftar?: number | null;
+  pesertaHadir?: number | null;
   createdAt: string;
   updatedAt: string;
 }
