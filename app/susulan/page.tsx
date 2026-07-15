@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { hariIniStrWIB } from '@/lib/tanggal';
 import { DAFTAR_PRODI } from '@/lib/prodi';
@@ -11,7 +11,7 @@ import { validasiFormSusulan } from '@/lib/validasi-susulan';
 import { useToast } from '@/components/ui/ToastProvider';
 import ComboboxCari from '@/components/ui/ComboboxCari';
 import UploadFotoInput from '@/components/publik/UploadFotoInput';
-import type { Periode, FotoBukti } from '@/lib/types';
+import type { BeritaAcaraSusulan, Periode, FotoBukti } from '@/lib/types';
 
 const KEJADIAN_DEFAULT = 'Nihil';
 
@@ -26,9 +26,15 @@ interface BarisJadwalRingkas {
   dosenPengajar: string;
 }
 
-export default function SusulanPage() {
+function SusulanForm() {
   const router = useRouter();
   const { showToast } = useToast();
+  const searchParams = useSearchParams();
+  /** Mode edit ulang: /susulan?edit=<id> untuk BA susulan yang kuncinya
+   *  sudah dibuka admin (F-09). */
+  const editId = searchParams.get('edit');
+  const [susulanEdit, setSusulanEdit] = useState<BeritaAcaraSusulan | null>(null);
+  const [errorEdit, setErrorEdit] = useState('');
   const [periodeAktif, setPeriodeAktif] = useState<Periode | null | undefined>(undefined);
 
   const [prodi, setProdi] = useState('');
@@ -69,10 +75,69 @@ export default function SusulanPage() {
         setPeriodeAktif(null);
       }
     }
-    muatPeriode();
-  }, []);
+
+    // Mode edit: muat dokumen susulan + periodenya (bukan periode aktif),
+    // lalu prefill seluruh isian. Hanya boleh jika kuncinya sudah dibuka.
+    async function muatUntukEdit(id: string) {
+      try {
+        const snap = await getDoc(doc(db, 'berita_acara_susulan', id));
+        if (!snap.exists()) {
+          setErrorEdit('Berita acara ujian susulan tidak ditemukan.');
+          setPeriodeAktif(null);
+          return;
+        }
+        const s = { id: snap.id, ...snap.data() } as unknown as BeritaAcaraSusulan;
+        if (s.locked !== false) {
+          setErrorEdit(
+            'Berita acara ujian susulan ini masih terkunci. Hubungi panitia/admin untuk membuka kunci.'
+          );
+          setPeriodeAktif(null);
+          return;
+        }
+        setProdi(s.prodi);
+        setTanggalStr(s.tanggalStr);
+        setModeManual(true);
+        setKodeMK(s.kodeMK);
+        setNamaMK(s.namaMK);
+        setKelas(s.kelas);
+        setDosenPengajar(s.dosenPengajar);
+        setRuangan(s.ruangan ?? '');
+        setPengawas1(s.pengawas1);
+        setPengawas2(s.pengawas2 ?? '');
+        setPesertaTerdaftar(String(s.pesertaTerdaftar));
+        setPesertaHadir(String(s.pesertaHadir));
+        setDaftarTidakHadir(s.daftarTidakHadir ?? '');
+        setJamMulaiAktual(s.jamMulaiAktual);
+        setJamSelesaiAktual(s.jamSelesaiAktual);
+        setJumlahBerkas(s.jumlahBerkas != null ? String(s.jumlahBerkas) : '');
+        setKejadianKhusus(s.kejadianKhusus);
+        setNarasiDibantuAI(Boolean(s.narasiDibantuAI));
+        setNamaPengisi(s.namaPengisi);
+        setFotoBukti(s.fotoBukti ?? []);
+        setSusulanEdit(s);
+
+        const periodeSnap = await getDoc(doc(db, 'periode', s.periodeId));
+        setPeriodeAktif(
+          periodeSnap.exists()
+            ? ({ id: periodeSnap.id, ...periodeSnap.data() } as unknown as Periode)
+            : null
+        );
+      } catch {
+        setErrorEdit('Gagal memuat berita acara ujian susulan. Periksa koneksi internet Anda.');
+        setPeriodeAktif(null);
+      }
+    }
+
+    if (editId) {
+      muatUntukEdit(editId);
+    } else {
+      muatPeriode();
+    }
+  }, [editId]);
 
   useEffect(() => {
+    // Mode edit: jangan reset isian MK yang sudah di-prefill.
+    if (editId) return;
     setNamaMKPilihan('');
     setKelasPilihan('');
     setKodeMK('');
@@ -110,7 +175,7 @@ export default function SusulanPage() {
       }
     }
     muatMK();
-  }, [periodeAktif, prodi]);
+  }, [periodeAktif, prodi, editId]);
 
   const daftarNamaMK = useMemo(
     () => Array.from(new Set(daftarJadwalProdi.map((j) => j.namaMK))).sort(),
@@ -191,10 +256,10 @@ export default function SusulanPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!periodeAktif) return;
+    if (!periodeAktif && !susulanEdit) return;
 
     const payload = {
-      periodeId: periodeAktif.id,
+      periodeId: susulanEdit ? susulanEdit.periodeId : periodeAktif!.id,
       tanggalStr,
       kodeMK,
       namaMK,
@@ -223,14 +288,22 @@ export default function SusulanPage() {
 
     setMengirim(true);
     try {
-      const res = await fetch('/api/berita-acara-susulan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ narasiDibantuAI, ...payload }),
-      });
+      const res = await fetch(
+        susulanEdit ? `/api/berita-acara-susulan/${susulanEdit.id}` : '/api/berita-acara-susulan',
+        {
+          method: susulanEdit ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ narasiDibantuAI, ...payload }),
+        }
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan berita acara susulan.');
-      showToast('Berita acara ujian susulan berhasil disimpan.', 'success');
+      showToast(
+        susulanEdit
+          ? 'Perubahan berita acara ujian susulan berhasil disimpan.'
+          : 'Berita acara ujian susulan berhasil disimpan.',
+        'success'
+      );
       router.push(`/berita-acara-susulan/${data.id}`);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Gagal menyimpan berita acara susulan.', 'error');
@@ -239,13 +312,21 @@ export default function SusulanPage() {
     }
   }
 
-  if (periodeAktif === undefined) {
+  if (editId && errorEdit) {
+    return (
+      <main className="mx-auto max-w-[600px] px-4 py-10 text-center text-sm text-faint">
+        {errorEdit}
+      </main>
+    );
+  }
+
+  if (periodeAktif === undefined || (editId && !susulanEdit)) {
     return (
       <main className="mx-auto max-w-[600px] px-4 py-10 text-center text-sm text-faint">Memuat...</main>
     );
   }
 
-  if (periodeAktif === null) {
+  if (periodeAktif === null && !susulanEdit) {
     return (
       <main className="mx-auto max-w-[600px] px-4 py-10 text-center text-sm text-faint">
         Tidak ada periode ujian aktif. Ujian susulan tidak dapat diinput saat ini.
@@ -262,7 +343,9 @@ export default function SusulanPage() {
         >
           ←
         </Link>
-        <div className="text-[15px] font-extrabold text-white">Berita Acara Ujian Susulan</div>
+        <div className="text-[15px] font-extrabold text-white">
+          {susulanEdit ? 'Edit Berita Acara Ujian Susulan' : 'Berita Acara Ujian Susulan'}
+        </div>
       </div>
 
       <div className="p-4 lg:mx-auto lg:grid lg:max-w-3xl lg:gap-5 lg:p-8">
@@ -273,9 +356,18 @@ export default function SusulanPage() {
           <h2 className="text-[11.5px] font-bold uppercase tracking-wide text-primary-600">
             Data Ujian Susulan
           </h2>
-          <p className="-mt-2 text-[11.5px] text-faint">
-            {periodeAktif.jenis} {periodeAktif.semester} T.A. {periodeAktif.tahunAkademik}
-          </p>
+          {periodeAktif && (
+            <p className="-mt-2 text-[11.5px] text-faint">
+              {periodeAktif.jenis} {periodeAktif.semester} T.A. {periodeAktif.tahunAkademik}
+            </p>
+          )}
+
+          {susulanEdit && (
+            <div className="rounded-[9px] border-[1.5px] border-warn-border bg-warn-bg px-3 py-2.5 text-xs font-semibold text-warn-text">
+              Berita acara susulan {susulanEdit.nomorBA} telah dibuka kuncinya oleh admin.
+              Perbaiki isian di bawah, lalu simpan — setelah disimpan akan terkunci kembali.
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -548,7 +640,11 @@ export default function SusulanPage() {
           <div>
             <label className={labelCls}>Foto Bukti Pelaksanaan * (min 1, maks 3)</label>
             <div className="mt-1.5">
-              <UploadFotoInput periodeId={periodeAktif.id} onChange={setFotoBukti} />
+              <UploadFotoInput
+                periodeId={susulanEdit ? susulanEdit.periodeId : periodeAktif!.id}
+                fotoAwal={susulanEdit?.fotoBukti}
+                onChange={setFotoBukti}
+              />
             </div>
           </div>
 
@@ -572,10 +668,30 @@ export default function SusulanPage() {
             disabled={mengirim}
             className="min-h-[44px] w-full rounded-[11px] bg-primary-600 py-3.5 text-[15px] font-extrabold text-white hover:bg-primary-700 disabled:opacity-60"
           >
-            {mengirim ? 'Menyimpan...' : 'Simpan Berita Acara Susulan'}
+            {mengirim
+              ? 'Menyimpan...'
+              : susulanEdit
+                ? 'Simpan Perubahan'
+                : 'Simpan Berita Acara Susulan'}
           </button>
         </form>
       </div>
     </div>
+  );
+}
+
+// useSearchParams (untuk ?edit=<id>) mewajibkan Suspense boundary saat
+// prerender di Next.js App Router.
+export default function SusulanPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-[600px] px-4 py-10 text-center text-sm text-faint">
+          Memuat...
+        </main>
+      }
+    >
+      <SusulanForm />
+    </Suspense>
   );
 }

@@ -280,9 +280,18 @@ export default function DetailBeritaAcaraPage({
       </div>
 
       <div id="no-print" className="mx-4 mb-5 text-center">
-        <span className="inline-block rounded-full bg-primary-50 px-3.5 py-2 text-xs font-bold text-primary-600">
-          🔒 Berita acara terkunci — hubungi panitia untuk koreksi
-        </span>
+        {ba.locked ? (
+          <span className="inline-block rounded-full bg-primary-50 px-3.5 py-2 text-xs font-bold text-primary-600">
+            🔒 Berita acara terkunci — hubungi panitia untuk koreksi
+          </span>
+        ) : (
+          <Link
+            href={`/isi/${ba.jadwalId}`}
+            className="inline-block rounded-full bg-warn-bg px-3.5 py-2 text-xs font-bold text-warn-text"
+          >
+            🔓 Kunci dibuka admin — klik untuk edit berita acara
+          </Link>
+        )}
       </div>
     </div>
   );

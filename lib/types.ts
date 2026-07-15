@@ -60,6 +60,7 @@ export interface JadwalUjian {
   pengawas2?: string | null;
   pesertaTerdaftar?: number | null;
   pesertaHadir?: number | null;
+  baLocked?: boolean | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -166,6 +167,7 @@ export type AksiAuditLog =
   | 'unlock_ba'
   | 'hapus_ba'
   | 'submit_ba_susulan'
+  | 'edit_ba_susulan'
   | 'unlock_ba_susulan'
   | 'hapus_ba_susulan'
   | 'crud_jadwal'

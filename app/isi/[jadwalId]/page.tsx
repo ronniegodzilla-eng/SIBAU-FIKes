@@ -9,7 +9,7 @@ import { formatTanggalIndonesia, jamStrWIB } from '@/lib/tanggal';
 import { validasiFormBA } from '@/lib/validasi';
 import { useToast } from '@/components/ui/ToastProvider';
 import UploadFotoInput from '@/components/publik/UploadFotoInput';
-import type { JadwalUjian, Periode, FotoBukti } from '@/lib/types';
+import type { BeritaAcara, JadwalUjian, Periode, FotoBukti } from '@/lib/types';
 
 const KEJADIAN_DEFAULT = 'Nihil';
 
@@ -27,6 +27,9 @@ export default function IsiBeritaAcaraPage({
   const [jadwal, setJadwal] = useState<JadwalUjian | null | undefined>(undefined);
   const [periode, setPeriode] = useState<Periode | null>(null);
   const [errorMuat, setErrorMuat] = useState('');
+  /** Terisi jika jadwal sudah punya BA yang kuncinya dibuka admin (F-09) —
+   *  form berubah jadi mode edit ulang dan submit memakai PUT. */
+  const [baEdit, setBaEdit] = useState<BeritaAcara | null>(null);
 
   const [pengawas1, setPengawas1] = useState('');
   const [pengawas2, setPengawas2] = useState('');
@@ -73,8 +76,30 @@ export default function IsiBeritaAcaraPage({
           return;
         }
         const jadwalData = { id: jadwalSnap.id, ...jadwalSnap.data() } as unknown as JadwalUjian;
-        setJadwal(jadwalData);
         setJamMulaiAktual(jadwalData.jamMulai || jamStrWIB());
+
+        // Jadwal terisi tapi BA-nya dibuka kuncinya oleh admin → mode edit
+        // ulang: prefill seluruh isian lama (termasuk foto) sebelum render.
+        if (jadwalData.status === 'terisi' && jadwalData.beritaAcaraId) {
+          const baSnap = await getDoc(doc(db, 'berita_acara', jadwalData.beritaAcaraId));
+          if (baSnap.exists() && baSnap.data().locked === false) {
+            const ba = { id: baSnap.id, ...baSnap.data() } as unknown as BeritaAcara;
+            setPengawas1(ba.pengawas1);
+            setPengawas2(ba.pengawas2 ?? '');
+            setPesertaTerdaftar(String(ba.pesertaTerdaftar));
+            setPesertaHadir(String(ba.pesertaHadir));
+            setDaftarTidakHadir(ba.daftarTidakHadir ?? '');
+            setJamMulaiAktual(ba.jamMulaiAktual);
+            setJamSelesaiAktual(ba.jamSelesaiAktual);
+            setJumlahBerkas(ba.jumlahBerkas != null ? String(ba.jumlahBerkas) : '');
+            setKejadianKhusus(ba.kejadianKhusus);
+            setNarasiDibantuAI(Boolean(ba.narasiDibantuAI));
+            setNamaPengisi(ba.namaPengisi);
+            setFotoBukti(ba.fotoBukti ?? []);
+            setBaEdit(ba);
+          }
+        }
+        setJadwal(jadwalData);
 
         const periodeSnap = await getDoc(doc(db, 'periode', jadwalData.periodeId));
         if (periodeSnap.exists()) {
@@ -117,14 +142,17 @@ export default function IsiBeritaAcaraPage({
 
     setMengirim(true);
     try {
-      const res = await fetch('/api/berita-acara', {
-        method: 'POST',
+      const res = await fetch(baEdit ? `/api/berita-acara/${baEdit.id}` : '/api/berita-acara', {
+        method: baEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jadwalId: params.jadwalId, narasiDibantuAI, ...payload }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan berita acara.');
-      showToast('Berita acara berhasil disimpan.', 'success');
+      showToast(
+        baEdit ? 'Perubahan berita acara berhasil disimpan.' : 'Berita acara berhasil disimpan.',
+        'success'
+      );
       router.push(`/berita-acara/${data.baId}`);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Gagal menyimpan berita acara.', 'error');
@@ -149,7 +177,7 @@ export default function IsiBeritaAcaraPage({
     );
   }
 
-  if (jadwal.status === 'terisi') {
+  if (jadwal.status === 'terisi' && !baEdit) {
     return (
       <main className="mx-auto max-w-[600px] px-4 py-10 text-center">
         <p className="text-sm text-faint">Berita acara untuk jadwal ini sudah diisi.</p>
@@ -174,7 +202,9 @@ export default function IsiBeritaAcaraPage({
         >
           ←
         </Link>
-        <div className="text-[15px] font-extrabold text-white">Isi Berita Acara Ujian</div>
+        <div className="text-[15px] font-extrabold text-white">
+          {baEdit ? 'Edit Berita Acara Ujian' : 'Isi Berita Acara Ujian'}
+        </div>
       </div>
 
       <div className="p-4 lg:mx-auto lg:grid lg:max-w-5xl lg:grid-cols-[320px_1fr] lg:items-start lg:gap-5 lg:p-8">
@@ -223,6 +253,13 @@ export default function IsiBeritaAcaraPage({
           <h2 className="text-[11.5px] font-bold uppercase tracking-wide text-primary-600">
             Diisi Pengawas
           </h2>
+
+          {baEdit && (
+            <div className="rounded-[9px] border-[1.5px] border-warn-border bg-warn-bg px-3 py-2.5 text-xs font-semibold text-warn-text">
+              Berita acara {baEdit.nomorBA} telah dibuka kuncinya oleh admin. Perbaiki isian di
+              bawah, lalu simpan — setelah disimpan berita acara akan terkunci kembali.
+            </div>
+          )}
 
           <div>
             <label className={labelCls}>Nama Pengawas 1 *</label>
@@ -347,7 +384,11 @@ export default function IsiBeritaAcaraPage({
           <div>
             <label className={labelCls}>Foto Bukti Pelaksanaan * (min 1, maks 3)</label>
             <div className="mt-1.5">
-              <UploadFotoInput jadwalId={params.jadwalId} onChange={setFotoBukti} />
+              <UploadFotoInput
+                jadwalId={params.jadwalId}
+                fotoAwal={baEdit?.fotoBukti}
+                onChange={setFotoBukti}
+              />
             </div>
           </div>
 
@@ -371,7 +412,7 @@ export default function IsiBeritaAcaraPage({
             disabled={mengirim}
             className="min-h-[44px] w-full rounded-[11px] bg-primary-600 py-3.5 text-[15px] font-extrabold text-white hover:bg-primary-700 disabled:opacity-60"
           >
-            {mengirim ? 'Menyimpan...' : 'Simpan Berita Acara'}
+            {mengirim ? 'Menyimpan...' : baEdit ? 'Simpan Perubahan' : 'Simpan Berita Acara'}
           </button>
         </form>
       </div>

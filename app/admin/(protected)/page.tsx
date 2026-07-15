@@ -11,6 +11,7 @@ const LABEL_AKSI: Record<string, string> = {
   unlock_ba: 'Berita acara dibuka kuncinya',
   hapus_ba: 'Berita acara dihapus',
   submit_ba_susulan: 'Berita acara susulan disimpan',
+  edit_ba_susulan: 'Berita acara susulan diedit',
   unlock_ba_susulan: 'Berita acara susulan dibuka kuncinya',
   hapus_ba_susulan: 'Berita acara susulan dihapus',
   crud_jadwal: 'Jadwal diubah',

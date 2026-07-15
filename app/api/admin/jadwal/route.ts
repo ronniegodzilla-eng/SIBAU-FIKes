@@ -12,6 +12,7 @@ interface RingkasBA {
   pengawas2: string | null;
   pesertaTerdaftar: number | null;
   pesertaHadir: number | null;
+  locked: boolean;
 }
 
 /** Ambil ringkasan BA (nomor + nama pengawas) untuk sekumpulan beritaAcaraId
@@ -32,6 +33,7 @@ async function ambilPetaRingkasBA(ids: string[]): Promise<Map<string, RingkasBA>
         pengawas2: (data.pengawas2 as string | null) ?? null,
         pesertaTerdaftar: (data.pesertaTerdaftar as number | null) ?? null,
         pesertaHadir: (data.pesertaHadir as number | null) ?? null,
+        locked: (data.locked as boolean | undefined) ?? true,
       });
     });
   }
@@ -59,6 +61,7 @@ export async function GET(req: NextRequest) {
         j.pengawas2 = ringkas?.pengawas2 ?? null;
         j.pesertaTerdaftar = ringkas?.pesertaTerdaftar ?? null;
         j.pesertaHadir = ringkas?.pesertaHadir ?? null;
+        j.baLocked = ringkas?.locked ?? null;
       });
     }
 

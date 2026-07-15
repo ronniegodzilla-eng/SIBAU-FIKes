@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import imageCompression from 'browser-image-compression';
+import { urlThumbnailFoto } from '@/lib/foto';
 import type { FotoBukti } from '@/lib/types';
 
 interface ItemFoto {
@@ -31,15 +32,27 @@ function fileKeBase64(file: Blob): Promise<string> {
 export default function UploadFotoInput({
   jadwalId,
   periodeId,
+  fotoAwal,
   onChange,
 }: {
   /** Untuk BA reguler (jadwal sudah ada). Beri salah satu: jadwalId atau periodeId. */
   jadwalId?: string;
   /** Untuk BA susulan (belum ada dokumen jadwal_ujian). */
   periodeId?: string;
+  /** Foto yang sudah tersimpan (mode edit ulang setelah admin unlock) —
+   *  ditampilkan sebagai item sukses dan bisa dihapus/diganti. */
+  fotoAwal?: FotoBukti[];
   onChange: (foto: FotoBukti[]) => void;
 }) {
-  const [items, setItems] = useState<ItemFoto[]>([]);
+  const [items, setItems] = useState<ItemFoto[]>(() =>
+    (fotoAwal ?? []).map((f) => ({
+      id: f.fileId,
+      namaFile: f.namaFile,
+      previewUrl: urlThumbnailFoto(f.fileId),
+      status: 'sukses' as const,
+      hasil: f,
+    }))
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   function laporkanPerubahan(daftar: ItemFoto[]) {
