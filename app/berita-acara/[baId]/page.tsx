@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { FirebaseError } from 'firebase/app';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { formatTanggalIndonesia } from '@/lib/tanggal';
@@ -50,8 +51,15 @@ export default function DetailBeritaAcaraPage({
         if (settingsSnap.exists()) {
           setSettings(settingsSnap.data() as SettingsApp);
         }
-      } catch {
-        setError('Gagal memuat berita acara. Periksa koneksi internet Anda.');
+      } catch (err) {
+        console.error('Gagal memuat berita acara:', err);
+        if (err instanceof FirebaseError && err.code === 'permission-denied') {
+          setError(
+            'Akses ke data ditolak (permission-denied). Firestore Security Rules kemungkinan belum di-deploy ke project. Hubungi admin sistem.'
+          );
+        } else {
+          setError('Gagal memuat berita acara. Periksa koneksi internet Anda.');
+        }
       }
     }
     muat();
