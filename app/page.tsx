@@ -16,6 +16,73 @@ import BarisJadwal from '@/components/publik/BarisJadwal';
 import PanelBelumDiisi from '@/components/publik/PanelBelumDiisi';
 import type { JadwalUjian, Periode } from '@/lib/types';
 
+type Kelompok = 'jam' | 'semester' | 'kelas' | 'tidak';
+
+interface GrupJadwal {
+  kunci: string;
+  label: string;
+  subLabel: string | null;
+  daftar: JadwalUjian[];
+}
+
+const urutAlami = (a: string, b: string) => a.localeCompare(b, 'id', { numeric: true });
+
+/** Data jadwal tidak menyimpan semester — diambil dari angka di depan kode
+ *  kelas (mis. "3B.2" → 3). Kelas tanpa angka depan (mis. "-") → null. */
+function semesterDariKelas(kelas: string): number | null {
+  const cocok = kelas.trim().match(/^(\d+)/);
+  return cocok ? Number(cocok[1]) : null;
+}
+
+function kelompokkanJadwal(daftar: JadwalUjian[], kelompok: Kelompok): GrupJadwal[] {
+  if (kelompok === 'tidak') {
+    return [{ kunci: 'semua', label: '', subLabel: null, daftar }];
+  }
+
+  // Kode kelas & semester bisa sama di prodi berbeda, jadi grupnya per prodi.
+  const banyakProdi = new Set(daftar.map((j) => j.prodi)).size > 1;
+  const peta = new Map<string, GrupJadwal & { urut: string }>();
+
+  for (const j of daftar) {
+    let kunci: string;
+    let label: string;
+    let subLabel: string | null = null;
+    let urut: string;
+
+    if (kelompok === 'jam') {
+      kunci = j.jamMulai;
+      label = `Jam ${j.jamMulai}`;
+      urut = j.jamMulai;
+    } else if (kelompok === 'semester') {
+      const sem = semesterDariKelas(j.kelas);
+      kunci = `${j.prodi}|${sem ?? 'lain'}`;
+      label = sem != null ? `Semester ${sem}` : 'Semester lainnya';
+      subLabel = banyakProdi ? j.prodi : null;
+      urut = `${j.prodi}|${sem != null ? String(sem).padStart(2, '0') : '99'}`;
+    } else {
+      kunci = `${j.prodi}|${j.kelas}`;
+      label = `Kelas ${j.kelas}`;
+      subLabel = banyakProdi ? j.prodi : null;
+      urut = `${j.prodi}|${j.kelas}`;
+    }
+
+    const grup = peta.get(kunci) ?? { kunci, label, subLabel, daftar: [], urut };
+    grup.daftar.push(j);
+    peta.set(kunci, grup);
+  }
+
+  return Array.from(peta.values())
+    .sort((a, b) => urutAlami(a.urut, b.urut))
+    .map((grup) => ({
+      kunci: grup.kunci,
+      label: grup.label,
+      subLabel: grup.subLabel,
+      daftar: grup.daftar.sort(
+        (a, b) => a.jamMulai.localeCompare(b.jamMulai) || urutAlami(a.kelas, b.kelas)
+      ),
+    }));
+}
+
 export default function DashboardPage() {
   const [periodeAktif, setPeriodeAktif] = useState<Periode | null | undefined>(undefined);
   const [tanggal, setTanggal] = useState(hariIniStrWIB());
@@ -26,6 +93,7 @@ export default function DashboardPage() {
   const [filterJam, setFilterJam] = useState('');
   const [filterProdi, setFilterProdi] = useState('');
   const [cari, setCari] = useState('');
+  const [kelompok, setKelompok] = useState<Kelompok>('jam');
 
   useEffect(() => {
     async function muatPeriode() {
@@ -113,6 +181,11 @@ export default function DashboardPage() {
     }
     return true;
   });
+
+  const grupJadwal = useMemo(
+    () => kelompokkanJadwal(jadwalTersaring, kelompok),
+    [jadwalTersaring, kelompok]
+  );
 
   const periodeAktifLabel = periodeAktif
     ? `${periodeAktif.jenis} ${periodeAktif.semester} T.A. ${periodeAktif.tahunAkademik}`
@@ -215,6 +288,21 @@ export default function DashboardPage() {
                     ))}
                   </select>
                 </div>
+                <div className="min-w-[140px]">
+                  <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">
+                    Kelompokkan
+                  </label>
+                  <select
+                    value={kelompok}
+                    onChange={(e) => setKelompok(e.target.value as Kelompok)}
+                    className="w-full rounded-[9px] border-[1.5px] border-line bg-white px-2.5 py-2.5 text-[13px] font-semibold text-ink"
+                  >
+                    <option value="jam">Per Jam</option>
+                    <option value="semester">Per Semester</option>
+                    <option value="kelas">Per Kelas</option>
+                    <option value="tidak">Tanpa Kelompok</option>
+                  </select>
+                </div>
               </div>
             </>
           ) : periodeAktif === null ? (
@@ -252,11 +340,34 @@ export default function DashboardPage() {
                 Tidak ada jadwal ujian untuk filter ini.
               </p>
             ) : (
-              <ul className="divide-y divide-line-soft overflow-hidden rounded-2xl bg-white shadow-[0_4px_14px_rgba(15,60,30,0.06)]">
-                {jadwalTersaring.map((j) => (
-                  <BarisJadwal key={j.id} jadwal={j} />
+              <div className="flex flex-col gap-4">
+                {grupJadwal.map((grup) => (
+                  <section key={grup.kunci}>
+                    {grup.label && (
+                      <div className="mb-1.5 flex items-baseline justify-between gap-3 px-1">
+                        <div className="min-w-0">
+                          <span className="text-[13.5px] font-extrabold text-primary-700">
+                            {grup.label}
+                          </span>
+                          {grup.subLabel && (
+                            <span className="ml-2 text-[11.5px] font-medium text-faint">
+                              {grup.subLabel}
+                            </span>
+                          )}
+                        </div>
+                        <span className="shrink-0 text-[11.5px] font-bold text-faint">
+                          {grup.daftar.length} ujian
+                        </span>
+                      </div>
+                    )}
+                    <ul className="divide-y divide-line-soft overflow-hidden rounded-2xl bg-white shadow-[0_4px_14px_rgba(15,60,30,0.06)]">
+                      {grup.daftar.map((j) => (
+                        <BarisJadwal key={j.id} jadwal={j} />
+                      ))}
+                    </ul>
+                  </section>
                 ))}
-              </ul>
+              </div>
             )}
           </>
         )}
