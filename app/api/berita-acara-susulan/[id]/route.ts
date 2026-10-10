@@ -5,6 +5,7 @@ import { ambilIpDariRequest } from '@/lib/verify-admin';
 import { tulisAuditLogDalamTransaksi } from '@/lib/audit';
 import { validasiFormSusulan } from '@/lib/validasi-susulan';
 import { periksaRateLimit } from '@/lib/rate-limit';
+import { tandatangani, isiTteSusulan } from '@/lib/tte';
 
 /**
  * PUT: pengisian ulang berita acara susulan yang kuncinya sudah dibuka admin
@@ -53,14 +54,15 @@ export async function PUT(
       if (!snap.exists) {
         throw new Error('NOT_FOUND');
       }
-      if (snap.data()!.locked !== false) {
+      const susulanLama = snap.data()!;
+      if (susulanLama.locked !== false) {
         throw new Error('TERKUNCI');
       }
 
       const pesertaTerdaftar = Number(body.pesertaTerdaftar);
       const pesertaHadir = Number(body.pesertaHadir);
 
-      trx.update(susulanRef, {
+      const dataBaru = {
         tanggalStr: body.tanggalStr,
         kodeMK: body.kodeMK.trim(),
         namaMK: body.namaMK.trim(),
@@ -84,6 +86,15 @@ export async function PUT(
         narasiDibantuAI: Boolean(body.narasiDibantuAI),
         fotoBukti: Array.isArray(body.fotoBukti) ? body.fotoBukti : [],
         namaPengisi: body.namaPengisi.trim(),
+      };
+
+      // Isi berubah → ditandatangani ulang; TTE lama tidak lagi mewakili isinya.
+      trx.update(susulanRef, {
+        ...dataBaru,
+        tte: tandatangani(
+          isiTteSusulan(params.id, { ...susulanLama, ...dataBaru }),
+          dataBaru.namaPengisi
+        ),
         locked: true,
         updatedAt: FieldValue.serverTimestamp(),
       });

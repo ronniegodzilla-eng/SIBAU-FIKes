@@ -13,12 +13,26 @@ export interface Pejabat {
 }
 
 export interface SettingsApp {
+  namaYayasan?: string;
   namaUniversitas: string;
   namaFakultas: string;
   alamat: string;
+  telepon?: string;
+  email?: string;
   logoUrl: string;
   pejabat: Pejabat;
   formatNomorBA: string;
+}
+
+/** Tanda tangan elektronik pengawas, dibubuhkan server saat BA dikirim atau
+ *  dikirim ulang setelah unlock. Lihat lib/tte.ts. */
+export interface TandaTanganElektronik {
+  /** SHA-256 (heks) atas isi BA saat ditandatangani. */
+  hash: string;
+  /** ISO 8601 — ikut di-hash, jadi tidak bisa diubah tanpa merusak hash. */
+  ditandatanganiAt: string;
+  /** Nama pengisi formulir yang mengirimkan BA. */
+  oleh: string;
 }
 
 export interface Periode {
@@ -89,6 +103,7 @@ export interface BeritaAcara {
   fotoBukti: FotoBukti[]; // 1-3
   namaPengisi: string;
   locked: boolean;
+  tte?: TandaTanganElektronik;
   createdAt: string;
   updatedAt: string;
 }
@@ -123,6 +138,7 @@ export interface BeritaAcaraSusulan {
   fotoBukti: FotoBukti[]; // 1-3
   namaPengisi: string;
   locked: boolean;
+  tte?: TandaTanganElektronik;
   createdAt: string;
   updatedAt: string;
 }

@@ -2,7 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import BeritaAcaraPDF from './BeritaAcaraPDF';
-import type { BeritaAcara, JadwalUjian, Periode, SettingsApp } from '@/lib/types';
+import type { DokumenBA } from '@/components/ba/dokumen';
+import type { KopSurat } from '@/lib/kop';
+import type { Pejabat } from '@/lib/types';
 
 // @react-pdf/renderer memakai API browser (canvas, fetch) yang tidak boleh
 // dieksekusi saat SSR/prerender — wajib dynamic import dengan ssr:false.
@@ -19,24 +21,30 @@ const PDFDownloadLink = dynamic(
 );
 
 export default function TombolUnduhPDF({
-  ba,
-  jadwal,
-  periode,
-  settings,
-  susulan = false,
+  dok,
+  kop,
+  pejabat,
+  qr,
+  urlVerifikasi,
 }: {
-  ba: BeritaAcara;
-  jadwal: JadwalUjian;
-  periode: Periode;
-  settings: SettingsApp;
-  susulan?: boolean;
+  dok: DokumenBA;
+  kop: KopSurat;
+  pejabat: Pejabat | null;
+  qr: string;
+  urlVerifikasi: string;
 }) {
   return (
     <PDFDownloadLink
       document={
-        <BeritaAcaraPDF ba={ba} jadwal={jadwal} periode={periode} settings={settings} susulan={susulan} />
+        <BeritaAcaraPDF
+          dok={dok}
+          kop={kop}
+          pejabat={pejabat}
+          qr={qr}
+          urlVerifikasi={urlVerifikasi}
+        />
       }
-      fileName={`${ba.nomorBA.replace(/\//g, '-')}.pdf`}
+      fileName={`${dok.nomorBA.replace(/\//g, '-')}.pdf`}
       className="flex min-h-[38px] items-center justify-center whitespace-nowrap rounded-[9px] bg-warn-accent px-3.5 text-[12.5px] font-extrabold text-[#3D2E00] hover:brightness-95"
     >
       {({ loading, error }) =>

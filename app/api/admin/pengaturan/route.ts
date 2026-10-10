@@ -4,6 +4,11 @@ import { adminDb } from '@/lib/firebase-admin';
 import { verifyAdminToken, wajibkanFullAdmin, ambilIpDariRequest, AdminAuthError } from '@/lib/verify-admin';
 import { tulisAuditLog } from '@/lib/audit';
 
+/** Field kop opsional: string dipangkas & dibatasi panjangnya; selain string jadi kosong. */
+function teks(nilai: unknown): string {
+  return typeof nilai === 'string' ? nilai.trim().slice(0, 200) : '';
+}
+
 function validasiPengaturan(body: any): string | null {
   if (typeof body.namaUniversitas !== 'string' || !body.namaUniversitas.trim()) {
     return 'Nama universitas wajib diisi.';
@@ -42,9 +47,12 @@ export async function PUT(req: NextRequest) {
       .doc('app')
       .set(
         {
+          namaYayasan: teks(body.namaYayasan),
           namaUniversitas: body.namaUniversitas.trim(),
           namaFakultas: body.namaFakultas.trim(),
-          alamat: body.alamat?.trim() || '',
+          alamat: teks(body.alamat),
+          telepon: teks(body.telepon),
+          email: teks(body.email),
           logoUrl: body.logoUrl?.trim() || '',
           pejabat: {
             nama: body.pejabat.nama.trim(),

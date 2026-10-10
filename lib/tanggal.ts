@@ -77,6 +77,19 @@ export function formatTanggalIndonesia(tanggalStr: string): string {
   return `${hari}, ${tanggal} ${bulan} ${tahun}`;
 }
 
+/** "26 Oktober 2026" (tanpa nama hari) — untuk baris tempat & tanggal surat. */
+export function formatTanggalTanpaHari(tanggalStr: string): string {
+  return formatTanggalIndonesia(tanggalStr).replace(/^[^,]+,\s*/, '');
+}
+
+/** "Senin, 26 Oktober 2026 pukul 10.15 WIB" dari sebuah instant (ISO string). */
+export function formatTanggalJamWIB(iso: string): string {
+  const instant = new Date(iso);
+  if (isNaN(instant.getTime())) return '—';
+  const tanggal = formatTanggalIndonesia(tanggalStrWIB(instant));
+  return `${tanggal} pukul ${jamStrWIB(instant).replace(':', '.')} WIB`;
+}
+
 /** Format singkat "2 Jul 2026" untuk tempat sempit (kartu, tabel). */
 export function formatTanggalSingkat(tanggalStr: string): string {
   const anchor = buatTimestampTengahHariWIB(tanggalStr);

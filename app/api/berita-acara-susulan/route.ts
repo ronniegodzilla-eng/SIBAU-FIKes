@@ -7,6 +7,7 @@ import { validasiFormSusulan } from '@/lib/validasi-susulan';
 import { formatNomorBA, FORMAT_NOMOR_BA_DEFAULT } from '@/lib/nomor-ba';
 import { hariIniStrWIB } from '@/lib/tanggal';
 import { periksaRateLimit } from '@/lib/rate-limit';
+import { tandatangani, isiTteSusulan } from '@/lib/tte';
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
       const pesertaTerdaftar = Number(body.pesertaTerdaftar);
       const pesertaHadir = Number(body.pesertaHadir);
 
-      trx.set(susulanRef, {
+      const dataSusulan = {
         periodeId: body.periodeId,
         tanggalStr: body.tanggalStr,
         kodeMK: body.kodeMK.trim(),
@@ -87,6 +88,11 @@ export async function POST(req: NextRequest) {
         narasiDibantuAI: Boolean(body.narasiDibantuAI),
         fotoBukti: Array.isArray(body.fotoBukti) ? body.fotoBukti : [],
         namaPengisi: body.namaPengisi.trim(),
+      };
+
+      trx.set(susulanRef, {
+        ...dataSusulan,
+        tte: tandatangani(isiTteSusulan(susulanRef.id, dataSusulan), dataSusulan.namaPengisi),
         locked: true,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),

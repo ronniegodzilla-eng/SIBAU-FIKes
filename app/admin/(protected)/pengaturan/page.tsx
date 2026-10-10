@@ -7,12 +7,16 @@ import { adminFetch, AdminFetchError } from '@/lib/admin-fetch';
 import { useToast } from '@/components/ui/ToastProvider';
 import { FORMAT_NOMOR_BA_DEFAULT } from '@/lib/nomor-ba';
 import KelolaCoAdmin from '@/components/admin/KelolaCoAdmin';
+import { KOP_BAWAAN } from '@/lib/kop';
 
 const KOSONG = {
-  namaUniversitas: 'Universitas Ibnu Sina',
-  namaFakultas: 'Fakultas Ilmu Kesehatan',
-  alamat: 'Batam, Kepulauan Riau',
-  logoUrl: '/logo-uis.png',
+  namaYayasan: KOP_BAWAAN.namaYayasan,
+  namaUniversitas: KOP_BAWAAN.namaUniversitas,
+  namaFakultas: KOP_BAWAAN.namaFakultas,
+  alamat: KOP_BAWAAN.alamat,
+  telepon: KOP_BAWAAN.telepon,
+  email: KOP_BAWAAN.email,
+  logoUrl: KOP_BAWAAN.logoUrl,
   pejabat: { nama: '', nip: '', jabatan: 'Koordinator Panitia UTS/UAS' },
   formatNomorBA: FORMAT_NOMOR_BA_DEFAULT,
 };
@@ -34,9 +38,12 @@ export default function AdminPengaturanPage() {
         if (snap.exists()) {
           const data = snap.data();
           setForm({
+            namaYayasan: data.namaYayasan ?? KOSONG.namaYayasan,
             namaUniversitas: data.namaUniversitas ?? KOSONG.namaUniversitas,
             namaFakultas: data.namaFakultas ?? KOSONG.namaFakultas,
             alamat: data.alamat ?? KOSONG.alamat,
+            telepon: data.telepon ?? KOSONG.telepon,
+            email: data.email ?? KOSONG.email,
             logoUrl: data.logoUrl ?? KOSONG.logoUrl,
             pejabat: {
               nama: data.pejabat?.nama ?? '',
@@ -104,6 +111,21 @@ export default function AdminPengaturanPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <div className="text-[13px] font-extrabold text-ink">Kop Surat</div>
+            <p className="mt-0.5 text-[11px] text-faint">
+              Tercetak di kepala setiap berita acara dan halaman verifikasi TTE. Baris yang
+              dikosongkan memakai kop bawaan FIKes UIS.
+            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Nama Yayasan</label>
+            <input
+              value={form.namaYayasan}
+              onChange={(e) => setForm({ ...form, namaYayasan: e.target.value })}
+              className={inputCls}
+            />
+          </div>
           <div>
             <label className={labelCls}>Nama Universitas</label>
             <input
@@ -127,6 +149,26 @@ export default function AdminPengaturanPage() {
               onChange={(e) => setForm({ ...form, alamat: e.target.value })}
               className={inputCls}
             />
+          </div>
+          <div>
+            <label className={labelCls}>Telepon</label>
+            <input
+              value={form.telepon}
+              onChange={(e) => setForm({ ...form, telepon: e.target.value })}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className={inputCls}
+            />
+          </div>
+          <div className="sm:col-span-2 mt-1 border-t border-line pt-3.5">
+            <div className="text-[13px] font-extrabold text-ink">Pejabat yang Mengetahui</div>
           </div>
           <div>
             <label className={labelCls}>Nama Pejabat Penandatangan</label>

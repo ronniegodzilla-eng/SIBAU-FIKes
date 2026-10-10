@@ -7,6 +7,7 @@ import { validasiFormBA } from '@/lib/validasi';
 import { formatNomorBA, FORMAT_NOMOR_BA_DEFAULT } from '@/lib/nomor-ba';
 import { hariIniStrWIB } from '@/lib/tanggal';
 import { periksaRateLimit } from '@/lib/rate-limit';
+import { tandatangani, isiTteReguler } from '@/lib/tte';
 
 export async function POST(req: NextRequest) {
   try {
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
       const pesertaTerdaftar = Number(body.pesertaTerdaftar);
       const pesertaHadir = Number(body.pesertaHadir);
 
-      trx.set(baRef, {
+      const dataBA = {
         jadwalId: body.jadwalId,
         nomorBA,
         pengawas1: body.pengawas1.trim(),
@@ -94,6 +95,11 @@ export async function POST(req: NextRequest) {
         narasiDibantuAI: Boolean(body.narasiDibantuAI),
         fotoBukti: Array.isArray(body.fotoBukti) ? body.fotoBukti : [],
         namaPengisi: body.namaPengisi.trim(),
+      };
+
+      trx.set(baRef, {
+        ...dataBA,
+        tte: tandatangani(isiTteReguler(baRef.id, dataBA, jadwal), dataBA.namaPengisi),
         locked: true,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),

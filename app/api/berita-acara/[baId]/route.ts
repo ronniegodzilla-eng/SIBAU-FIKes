@@ -5,6 +5,7 @@ import { ambilIpDariRequest } from '@/lib/verify-admin';
 import { tulisAuditLogDalamTransaksi } from '@/lib/audit';
 import { validasiFormBA } from '@/lib/validasi';
 import { periksaRateLimit } from '@/lib/rate-limit';
+import { tandatangani, isiTteReguler } from '@/lib/tte';
 
 /**
  * PUT: pengisian ulang berita acara yang kuncinya sudah dibuka admin (F-09).
@@ -43,14 +44,19 @@ export async function PUT(
       if (!snap.exists) {
         throw new Error('NOT_FOUND');
       }
-      if (snap.data()!.locked !== false) {
+      const baLama = snap.data()!;
+      if (baLama.locked !== false) {
         throw new Error('TERKUNCI');
+      }
+      const jadwalSnap = await trx.get(adminDb.collection('jadwal_ujian').doc(baLama.jadwalId));
+      if (!jadwalSnap.exists) {
+        throw new Error('NOT_FOUND');
       }
 
       const pesertaTerdaftar = Number(body.pesertaTerdaftar);
       const pesertaHadir = Number(body.pesertaHadir);
 
-      trx.update(baRef, {
+      const dataBaru = {
         pengawas1: body.pengawas1.trim(),
         pengawas2: body.pengawas2?.trim?.() || null,
         pesertaTerdaftar,
@@ -67,6 +73,15 @@ export async function PUT(
         narasiDibantuAI: Boolean(body.narasiDibantuAI),
         fotoBukti: Array.isArray(body.fotoBukti) ? body.fotoBukti : [],
         namaPengisi: body.namaPengisi.trim(),
+      };
+
+      // Isi berubah → ditandatangani ulang; TTE lama tidak lagi mewakili isinya.
+      trx.update(baRef, {
+        ...dataBaru,
+        tte: tandatangani(
+          isiTteReguler(params.baId, { ...baLama, ...dataBaru }, jadwalSnap.data()!),
+          dataBaru.namaPengisi
+        ),
         locked: true,
         updatedAt: FieldValue.serverTimestamp(),
       });
