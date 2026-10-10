@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { hariIniStrWIB, formatTanggalIndonesia } from '@/lib/tanggal';
-import KartuJadwal from '@/components/publik/KartuJadwal';
+import BarisJadwal from '@/components/publik/BarisJadwal';
 import PanelBelumDiisi from '@/components/publik/PanelBelumDiisi';
 import type { JadwalUjian, Periode } from '@/lib/types';
 
@@ -252,11 +252,11 @@ export default function DashboardPage() {
                 Tidak ada jadwal ujian untuk filter ini.
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="divide-y divide-line-soft overflow-hidden rounded-2xl bg-white shadow-[0_4px_14px_rgba(15,60,30,0.06)]">
                 {jadwalTersaring.map((j) => (
-                  <KartuJadwal key={j.id} jadwal={j} />
+                  <BarisJadwal key={j.id} jadwal={j} />
                 ))}
-              </div>
+              </ul>
             )}
           </>
         )}
