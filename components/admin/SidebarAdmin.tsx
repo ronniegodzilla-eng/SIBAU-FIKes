@@ -11,6 +11,7 @@ const MENU = [
   { href: '/admin/periode', label: 'Periode Ujian', fullAdminOnly: true },
   { href: '/admin/jadwal', label: 'Jadwal Ujian' },
   { href: '/admin/rekap', label: 'Rekap & Monitoring' },
+  { href: '/admin/pengawas', label: 'Rekap Pengawas' },
   { href: '/admin/pengaturan', label: 'Pengaturan', fullAdminOnly: true },
 ];
 

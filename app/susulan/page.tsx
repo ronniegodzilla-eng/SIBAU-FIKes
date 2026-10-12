@@ -11,6 +11,7 @@ import { validasiFormSusulan } from '@/lib/validasi-susulan';
 import { useToast } from '@/components/ui/ToastProvider';
 import ComboboxCari from '@/components/ui/ComboboxCari';
 import UploadFotoInput from '@/components/publik/UploadFotoInput';
+import DaftarNamaPengawas, { ID_DAFTAR_PENGAWAS } from '@/components/publik/DaftarNamaPengawas';
 import type { BeritaAcaraSusulan, Periode, FotoBukti } from '@/lib/types';
 
 const KEJADIAN_DEFAULT = 'Nihil';
@@ -518,11 +519,14 @@ function SusulanForm() {
           </h2>
 
           <div>
+            <DaftarNamaPengawas />
             <label className={labelCls}>Nama Pengawas 1 *</label>
             <input
               value={pengawas1}
               onChange={(e) => setPengawas1(e.target.value)}
               placeholder="Nama lengkap"
+              list={ID_DAFTAR_PENGAWAS}
+              autoComplete="off"
               className={inputCls}
             />
           </div>
@@ -532,6 +536,8 @@ function SusulanForm() {
               value={pengawas2}
               onChange={(e) => setPengawas2(e.target.value)}
               placeholder="Nama lengkap"
+              list={ID_DAFTAR_PENGAWAS}
+              autoComplete="off"
               className={inputCls}
             />
           </div>

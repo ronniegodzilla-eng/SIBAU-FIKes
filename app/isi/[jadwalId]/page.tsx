@@ -9,6 +9,7 @@ import { formatTanggalIndonesia, jamStrWIB } from '@/lib/tanggal';
 import { validasiFormBA } from '@/lib/validasi';
 import { useToast } from '@/components/ui/ToastProvider';
 import UploadFotoInput from '@/components/publik/UploadFotoInput';
+import DaftarNamaPengawas, { ID_DAFTAR_PENGAWAS } from '@/components/publik/DaftarNamaPengawas';
 import type { BeritaAcara, JadwalUjian, Periode, FotoBukti } from '@/lib/types';
 
 const KEJADIAN_DEFAULT = 'Nihil';
@@ -262,11 +263,14 @@ export default function IsiBeritaAcaraPage({
           )}
 
           <div>
+            <DaftarNamaPengawas />
             <label className={labelCls}>Nama Pengawas 1 *</label>
             <input
               value={pengawas1}
               onChange={(e) => setPengawas1(e.target.value)}
               placeholder="Nama lengkap"
+              list={ID_DAFTAR_PENGAWAS}
+              autoComplete="off"
               className={inputCls}
             />
           </div>
@@ -276,6 +280,8 @@ export default function IsiBeritaAcaraPage({
               value={pengawas2}
               onChange={(e) => setPengawas2(e.target.value)}
               placeholder="Nama lengkap"
+              list={ID_DAFTAR_PENGAWAS}
+              autoComplete="off"
               className={inputCls}
             />
           </div>

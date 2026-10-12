@@ -11,6 +11,7 @@ const JUDUL: Record<string, string> = {
   '/admin/periode': 'Manajemen Periode Ujian',
   '/admin/jadwal': 'Manajemen Jadwal Ujian',
   '/admin/rekap': 'Rekap & Monitoring',
+  '/admin/pengawas': 'Rekap Pengawas',
   '/admin/pengaturan': 'Pengaturan Aplikasi',
 };
 

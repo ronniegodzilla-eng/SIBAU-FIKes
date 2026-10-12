@@ -190,6 +190,7 @@ export type AksiAuditLog =
   | 'import_jadwal'
   | 'crud_periode'
   | 'update_pengaturan'
+  | 'update_alias_pengawas'
   | 'login_admin'
   | 'buat_co_admin'
   | 'hapus_co_admin';
