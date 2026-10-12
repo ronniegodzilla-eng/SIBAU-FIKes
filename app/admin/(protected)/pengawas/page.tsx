@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { adminFetch, AdminFetchError } from '@/lib/admin-fetch';
 import { useToast } from '@/components/ui/ToastProvider';
+import Modal from '@/components/ui/Modal';
 import { formatTanggalSingkat } from '@/lib/tanggal';
 import {
   ALIAS_KOSONG,
@@ -24,6 +25,21 @@ import {
 import type { BeritaAcaraSusulan, JadwalUjian, Periode } from '@/lib/types';
 
 type PeriodeRingkas = Pick<Periode, 'id' | 'jenis' | 'semester' | 'tahunAkademik' | 'aktif'>;
+type JenisDetail = 'reguler' | 'susulan' | 'semua';
+
+const LABEL_JENIS: Record<JenisDetail, string> = {
+  reguler: 'Ujian Reguler',
+  susulan: 'Ujian Susulan',
+  semua: 'Semua Ujian',
+};
+
+function pathBA(t: Penugasan): string {
+  return t.susulan ? `/berita-acara-susulan/${t.id}` : `/berita-acara/${t.id}`;
+}
+
+function saringJenis(tugas: Penugasan[], jenis: JenisDetail): Penugasan[] {
+  return jenis === 'semua' ? tugas : tugas.filter((t) => t.susulan === (jenis === 'susulan'));
+}
 
 const kartuCls = 'rounded-2xl bg-white shadow-[0_2px_10px_rgba(15,60,30,0.06)]';
 const kontrolCls =
@@ -43,6 +59,7 @@ export default function RekapPengawasPage() {
   const [filterProdi, setFilterProdi] = useState('');
   const [cari, setCari] = useState('');
   const [terbuka, setTerbuka] = useState<string | null>(null);
+  const [detail, setDetail] = useState<{ kunci: string; jenis: JenisDetail } | null>(null);
 
   useEffect(() => {
     async function muatAwal() {
@@ -241,6 +258,10 @@ export default function RekapPengawasPage() {
   }
 
   function exportExcel() {
+    const periode = daftarPeriode.find((p) => p.id === periodeId);
+    const labelPeriode = periode
+      ? `${periode.jenis} ${periode.semester} ${periode.tahunAkademik}`
+      : periodeId;
     const ringkas = rekapTampil.rekap.map((r, i) => ({
       No: i + 1,
       'Nama Pengawas': r.nama,
@@ -250,28 +271,64 @@ export default function RekapPengawasPage() {
       'Total Durasi (jam)': Math.round((r.menit / 60) * 100) / 100,
       'Ejaan Tercatat': r.ejaan.map((e) => `${e.teks} (${e.jumlah})`).join('; '),
     }));
-    const detail = rekapTampil.rekap.flatMap((r) =>
-      r.tugas
-        .filter((t) => !filterProdi || t.prodi === filterProdi)
-        .map((t) => ({
-          'Nama Pengawas': r.nama,
-          Tanggal: t.tanggalStr,
-          Jam: `${t.jamMulai}-${t.jamSelesai}`,
-          Jenis: t.susulan ? 'Susulan' : 'Reguler',
-          'Kode MK': t.kodeMK,
-          'Nama MK': t.namaMK,
-          Prodi: t.prodi,
-          Kelas: t.kelas,
-          Ruangan: t.ruangan ?? '-',
-          'Nomor BA': t.nomorBA ?? '-',
-        }))
-    );
+
+    // Detail dikelompokkan per pengawas: baris judul pengawas, baris kepala
+    // kolom, daftar tugasnya, lalu satu baris kosong sebelum pengawas berikutnya.
+    const KOLOM = [
+      'No', 'Tanggal', 'Jam', 'Jenis', 'Kode MK', 'Nama MK', 'Prodi', 'Kelas', 'Ruangan',
+      'Nomor BA', 'Tautan Berita Acara',
+    ];
+    const baris: (string | number)[][] = [
+      [`Detail Mengawas per Pengawas — ${labelPeriode}${filterProdi ? ` — ${filterProdi}` : ''}`],
+      [],
+    ];
+    const gabung: XLSX.Range[] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: KOLOM.length - 1 } }];
+    const tautan: { r: number; url: string }[] = [];
+    rekapTampil.rekap.forEach((r, i) => {
+      gabung.push({ s: { r: baris.length, c: 0 }, e: { r: baris.length, c: KOLOM.length - 1 } });
+      baris.push([
+        `${i + 1}. ${r.nama} — Reguler: ${r.reguler} · Susulan: ${r.susulan} · Total: ${r.total} · Durasi: ${formatDurasi(r.menit)}`,
+      ]);
+      baris.push(KOLOM);
+      r.tugas.forEach((t, j) => {
+        const url = `${window.location.origin}${pathBA(t)}`;
+        tautan.push({ r: baris.length, url });
+        baris.push([
+          j + 1,
+          t.tanggalStr,
+          `${t.jamMulai}-${t.jamSelesai}`,
+          t.susulan ? 'Susulan' : 'Reguler',
+          t.kodeMK,
+          t.namaMK,
+          t.prodi,
+          t.kelas,
+          t.ruangan ?? '-',
+          t.nomorBA ?? '-',
+          url,
+        ]);
+      });
+      baris.push([]);
+    });
+    const wsDetail = XLSX.utils.aoa_to_sheet(baris);
+    wsDetail['!merges'] = gabung;
+    wsDetail['!cols'] = [5, 11, 12, 9, 10, 36, 30, 8, 10, 30, 60].map((wch) => ({ wch }));
+    for (const { r, url } of tautan) {
+      for (const c of [9, 10]) {
+        const sel = wsDetail[XLSX.utils.encode_cell({ r, c })];
+        if (sel) sel.l = { Target: url };
+      }
+    }
+
+    const wsRingkas = XLSX.utils.json_to_sheet(ringkas);
+    wsRingkas['!cols'] = [5, 32, 13, 13, 14, 16, 60].map((wch) => ({ wch }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ringkas), 'Rekap Pengawas');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail), 'Detail Mengawas');
+    XLSX.utils.book_append_sheet(wb, wsRingkas, 'Rekap Pengawas');
+    XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail per Pengawas');
     XLSX.writeFile(wb, `rekap-pengawas-${periodeId}${filterProdi ? `-${filterProdi}` : ''}.xlsx`);
     showToast('Rekap pengawas berhasil diekspor ke Excel.', 'success');
   }
+
+  const rekapDetail = detail ? rekapTampil.rekap.find((r) => r.kunci === detail.kunci) : undefined;
 
   const totalMengawas = rekapTampil.rekap.reduce((n, r) => n + r.total, 0);
 
@@ -417,10 +474,27 @@ export default function RekapPengawasPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-3.5 py-2.5 text-right text-body">{r.reguler}</td>
-                      <td className="px-3.5 py-2.5 text-right text-body">{r.susulan}</td>
-                      <td className="px-3.5 py-2.5 text-right text-[14px] font-extrabold text-primary-600">
-                        {r.total}
+                      <td className="px-3.5 py-2.5 text-right">
+                        <AngkaDetail
+                          nilai={r.reguler}
+                          judul={`Lihat ${r.reguler} ujian reguler yang diawasi ${r.nama}`}
+                          onKlik={() => setDetail({ kunci: r.kunci, jenis: 'reguler' })}
+                        />
+                      </td>
+                      <td className="px-3.5 py-2.5 text-right">
+                        <AngkaDetail
+                          nilai={r.susulan}
+                          judul={`Lihat ${r.susulan} ujian susulan yang diawasi ${r.nama}`}
+                          onKlik={() => setDetail({ kunci: r.kunci, jenis: 'susulan' })}
+                        />
+                      </td>
+                      <td className="px-3.5 py-2.5 text-right">
+                        <AngkaDetail
+                          nilai={r.total}
+                          tebal
+                          judul={`Lihat semua ujian yang diawasi ${r.nama}`}
+                          onKlik={() => setDetail({ kunci: r.kunci, jenis: 'semua' })}
+                        />
                       </td>
                       <td className="whitespace-nowrap px-3.5 py-2.5 text-right text-body">
                         {formatDurasi(r.menit)}
@@ -498,11 +572,7 @@ export default function RekapPengawasPage() {
                                     <td className="py-1.5 pr-3 text-body">{t.ruangan ?? '—'}</td>
                                     <td className="py-1.5 text-right">
                                       <a
-                                        href={
-                                          t.susulan
-                                            ? `/berita-acara-susulan/${t.id}`
-                                            : `/berita-acara/${t.id}`
-                                        }
+                                        href={pathBA(t)}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="font-bold text-primary-600 underline underline-offset-2"
@@ -558,7 +628,155 @@ export default function RekapPengawasPage() {
           )}
         </div>
       )}
+
+      {detail && rekapDetail && (
+        <DetailTugas
+          r={rekapDetail}
+          jenis={detail.jenis}
+          onJenis={(jenis) => setDetail({ ...detail, jenis })}
+          onClose={() => setDetail(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function AngkaDetail({
+  nilai,
+  judul,
+  tebal,
+  onKlik,
+}: {
+  nilai: number;
+  judul: string;
+  tebal?: boolean;
+  onKlik: () => void;
+}) {
+  const cls = tebal ? 'text-[14px] font-extrabold' : 'font-semibold';
+  if (nilai === 0) return <span className={`${cls} text-faint`}>0</span>;
+  return (
+    <button
+      onClick={onKlik}
+      title={judul}
+      aria-label={judul}
+      className={`${cls} min-w-[34px] rounded-md px-2 py-0.5 text-primary-600 underline decoration-dotted underline-offset-4 hover:bg-primary-50`}
+    >
+      {nilai}
+    </button>
+  );
+}
+
+function DetailTugas({
+  r,
+  jenis,
+  onJenis,
+  onClose,
+}: {
+  r: RekapPengawas;
+  jenis: JenisDetail;
+  onJenis: (jenis: JenisDetail) => void;
+  onClose: () => void;
+}) {
+  const tugas = saringJenis(r.tugas, jenis);
+
+  useEffect(() => {
+    const tutup = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', tutup);
+    return () => window.removeEventListener('keydown', tutup);
+  }, [onClose]);
+
+  return (
+    <Modal title={`${r.nama} — ${LABEL_JENIS[jenis]}`} onClose={onClose} maxWidthClass="max-w-[860px]">
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {(['reguler', 'susulan', 'semua'] as JenisDetail[]).map((j) => {
+          const n = j === 'reguler' ? r.reguler : j === 'susulan' ? r.susulan : r.total;
+          return (
+            <button
+              key={j}
+              onClick={() => onJenis(j)}
+              className={`rounded-full px-3 py-1 text-[12px] font-bold ${
+                j === jenis ? 'bg-primary-600 text-white' : 'bg-app text-body hover:bg-primary-50'
+              }`}
+            >
+              {LABEL_JENIS[j]} ({n})
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="overflow-auto rounded-xl border border-line">
+        <table className="w-full min-w-[640px] border-collapse text-[12.5px]">
+          <thead>
+            <tr className="bg-app">
+              <Th>NO</Th>
+              <Th>TANGGAL &amp; JAM</Th>
+              <Th>MATA KULIAH</Th>
+              <Th>PRODI / KELAS</Th>
+              <Th>RUANGAN</Th>
+              <Th kanan>BERITA ACARA</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {tugas.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3.5 py-5 text-center text-faint">
+                  Tidak ada ujian {jenis === 'susulan' ? 'susulan' : 'reguler'} yang diawasi.
+                </td>
+              </tr>
+            )}
+            {tugas.map((t, i) => (
+              <tr key={t.id} className="border-t border-line-soft align-top">
+                <td className="px-3.5 py-2 text-faint">{i + 1}</td>
+                <td className="whitespace-nowrap px-3.5 py-2 text-body">
+                  {formatTanggalSingkat(t.tanggalStr)}
+                  <div className="text-[11px] text-faint">
+                    {t.jamMulai}–{t.jamSelesai}
+                  </div>
+                </td>
+                <td className="px-3.5 py-2">
+                  <div className="font-bold text-ink">
+                    {t.namaMK}
+                    {t.susulan && (
+                      <span className="ml-1.5 rounded-full bg-warn-bg px-1.5 text-[10px] font-bold text-warn-text">
+                        Susulan
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-faint">{t.kodeMK}</div>
+                </td>
+                <td className="px-3.5 py-2 text-body">
+                  {t.prodi}
+                  <div className="text-[11px] text-faint">Kelas {t.kelas}</div>
+                </td>
+                <td className="px-3.5 py-2 text-body">{t.ruangan ?? '—'}</td>
+                <td className="px-3.5 py-2 text-right">
+                  <a
+                    href={pathBA(t)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block rounded-lg border border-line-strong px-2.5 py-1 text-[11px] font-bold text-primary-600 hover:bg-primary-50"
+                  >
+                    Lihat BA ↗
+                  </a>
+                  <div className="mt-1 whitespace-nowrap text-[10.5px] text-faint">
+                    {t.nomorBA ?? '—'}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={onClose}
+          className="min-h-[38px] rounded-lg border-[1.5px] border-line-strong px-4 text-[13px] font-bold text-body hover:bg-app"
+        >
+          Tutup
+        </button>
+      </div>
+    </Modal>
   );
 }
 
