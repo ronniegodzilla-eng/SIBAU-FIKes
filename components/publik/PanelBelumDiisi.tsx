@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  formatTanggalSingkat,
-  hariIniStrWIB,
-  jamStrWIB,
-  selisihHariDariSekarang,
-} from '@/lib/tanggal';
+import { formatTanggalSingkat, selisihHariDariSekarang, ujianSudahLewat } from '@/lib/tanggal';
 import type { JadwalUjian } from '@/lib/types';
 
 const KUNCI_TUTUP = 'sibau:panel-belum-diisi-tutup';
@@ -41,10 +36,8 @@ export default function PanelBelumDiisi({ daftar }: { daftar: JadwalUjian[] }) {
   }
 
   // Ujian hari ini baru dianggap tertunggak setelah jam selesainya lewat;
-  // yang belum berlangsung sudah ada di daftar jadwal di bawah panel ini.
-  const hariIni = hariIniStrWIB();
-  const sekarang = jamStrWIB();
-  const tertunggak = daftar.filter((j) => j.tanggalStr < hariIni || j.jamSelesai <= sekarang);
+  // yang belum berlangsung masih ada di daftar jadwal di bawah panel ini.
+  const tertunggak = daftar.filter((j) => ujianSudahLewat(j));
   if (tertunggak.length === 0) return null;
 
   return (

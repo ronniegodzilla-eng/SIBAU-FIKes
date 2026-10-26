@@ -48,6 +48,19 @@ export function hariIniStrWIB(): string {
   return tanggalStrWIB(new Date());
 }
 
+/**
+ * Ujian sudah lewat: tanggalnya sebelum hari ini, atau hari ini dan jam
+ * selesainya sudah terlewati (WIB). Dipakai panel "Belum Diisi" dan daftar
+ * jadwal publik supaya keduanya selalu sepakat.
+ */
+export function ujianSudahLewat(
+  j: { tanggalStr: string; jamSelesai: string },
+  sekarang: Date = new Date()
+): boolean {
+  const hariIni = tanggalStrWIB(sekarang);
+  return j.tanggalStr < hariIni || (j.tanggalStr === hariIni && j.jamSelesai <= jamStrWIB(sekarang));
+}
+
 /** "HH:mm" versi WIB dari sebuah instant (default: sekarang). */
 export function jamStrWIB(date: Date = new Date()): string {
   const wib = keTampilanWIB(date);

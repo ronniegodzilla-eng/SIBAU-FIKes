@@ -11,7 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
-import { hariIniStrWIB, formatTanggalIndonesia } from '@/lib/tanggal';
+import { hariIniStrWIB, formatTanggalIndonesia, ujianSudahLewat } from '@/lib/tanggal';
 import BarisJadwal from '@/components/publik/BarisJadwal';
 import PanelBelumDiisi from '@/components/publik/PanelBelumDiisi';
 import type { JadwalUjian, Periode } from '@/lib/types';
@@ -180,16 +180,23 @@ export default function DashboardPage() {
     muatJadwal();
   }, [periodeAktif, tanggal]);
 
-  const daftarJam = useMemo(
-    () => Array.from(new Set(jadwalHariItu.map((j) => j.jamMulai))).sort(),
-    [jadwalHariItu]
+  // Ujian yang sudah lewat dan belum diisi pindah ke panel "Belum Diisi";
+  // jangan tampil dua kali. Yang sudah terisi tetap di sini (Lihat/Cetak PDF).
+  // Dihitung ulang tiap menit supaya ujian berpindah begitu jam selesainya lewat.
+  const [, setDetak] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setDetak((n) => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const jadwalTampil = jadwalHariItu.filter(
+    (j) => !(j.status === 'belum_diisi' && ujianSudahLewat(j))
   );
-  const daftarProdi = useMemo(
-    () => Array.from(new Set(jadwalHariItu.map((j) => j.prodi))).sort(),
-    [jadwalHariItu]
-  );
+  const jumlahPindahKePanel = jadwalHariItu.length - jadwalTampil.length;
 
-  const jadwalTersaring = jadwalHariItu.filter((j) => {
+  const daftarJam = Array.from(new Set(jadwalTampil.map((j) => j.jamMulai))).sort();
+  const daftarProdi = Array.from(new Set(jadwalTampil.map((j) => j.prodi))).sort();
+
+  const jadwalTersaring = jadwalTampil.filter((j) => {
     if (filterJam && j.jamMulai !== filterJam) return false;
     if (filterProdi && j.prodi !== filterProdi) return false;
     if (cari) {
@@ -350,6 +357,12 @@ export default function DashboardPage() {
                 {jadwalTersaring.length} ujian
               </div>
             </div>
+            {jumlahPindahKePanel > 0 && !loading && (
+              <p className="-mt-1.5 mb-2.5 px-1 text-[11.5px] font-medium text-faint">
+                {jumlahPindahKePanel} ujian yang sudah lewat dan belum diisi berita acaranya
+                ditampilkan di panel &quot;belum diisi&quot; di atas.
+              </p>
+            )}
 
             {loading ? (
               <p className="text-sm text-faint">Memuat jadwal...</p>
