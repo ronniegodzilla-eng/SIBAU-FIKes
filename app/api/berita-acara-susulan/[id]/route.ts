@@ -5,7 +5,7 @@ import { ambilIpDariRequest } from '@/lib/verify-admin';
 import { tulisAuditLogDalamTransaksi } from '@/lib/audit';
 import { validasiFormSusulan } from '@/lib/validasi-susulan';
 import { periksaRateLimit } from '@/lib/rate-limit';
-import { tandatangani, isiTteSusulan } from '@/lib/tte';
+import { tandatanganiBA, isiTteSusulan, pejabatDari } from '@/lib/tte';
 
 /**
  * PUT: pengisian ulang berita acara susulan yang kuncinya sudah dibuka admin
@@ -58,6 +58,7 @@ export async function PUT(
       if (susulanLama.locked !== false) {
         throw new Error('TERKUNCI');
       }
+      const settingsSnap = await trx.get(adminDb.collection('settings').doc('app'));
 
       const pesertaTerdaftar = Number(body.pesertaTerdaftar);
       const pesertaHadir = Number(body.pesertaHadir);
@@ -88,13 +89,17 @@ export async function PUT(
         namaPengisi: body.namaPengisi.trim(),
       };
 
-      // Isi berubah → ditandatangani ulang; TTE lama tidak lagi mewakili isinya.
+      // Isi berubah → ditandatangani ulang (pengawas & pejabat); TTE lama
+      // tidak lagi mewakili isinya.
+      const { tte, ttePejabat } = tandatanganiBA(
+        isiTteSusulan(params.id, { ...susulanLama, ...dataBaru }),
+        dataBaru.namaPengisi,
+        pejabatDari(settingsSnap.data())
+      );
       trx.update(susulanRef, {
         ...dataBaru,
-        tte: tandatangani(
-          isiTteSusulan(params.id, { ...susulanLama, ...dataBaru }),
-          dataBaru.namaPengisi
-        ),
+        tte,
+        ttePejabat: ttePejabat ?? FieldValue.delete(),
         locked: true,
         updatedAt: FieldValue.serverTimestamp(),
       });

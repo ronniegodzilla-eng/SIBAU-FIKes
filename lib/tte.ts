@@ -13,7 +13,7 @@
 
 import { createHash } from 'crypto';
 import type { DocumentData } from 'firebase-admin/firestore';
-import type { TandaTanganElektronik } from '@/lib/types';
+import type { Pejabat, TandaTanganElektronik, TtePejabat } from '@/lib/types';
 
 export interface IsiTte {
   jenis: 'reguler' | 'susulan';
@@ -85,6 +85,70 @@ export function tandatangani(
 
 export function tteMasihUtuh(isi: IsiTte, tte: TandaTanganElektronik): boolean {
   return hitungHashTte(isi, tte.ditandatanganiAt) === tte.hash;
+}
+
+// TTE pejabat "Mengetahui" (ketua panitia) terbit otomatis bersama TTE
+// pengawas. Hash-nya mengikat isi BA yang sama ditambah identitas pejabat,
+// sehingga mengganti nama/NIP/jabatan di dokumen juga terdeteksi.
+
+function hitungHashTtePejabat(isi: IsiTte, p: Pejabat, ditandatanganiAt: string): string {
+  const kanonik = JSON.stringify([
+    ...URUTAN_FIELD.map((k) => isi[k]),
+    'mengetahui',
+    p.nama,
+    p.nip,
+    p.jabatan,
+    ditandatanganiAt,
+  ]);
+  return createHash('sha256').update(kanonik, 'utf8').digest('hex');
+}
+
+/** Pejabat dari dokumen settings/app; null bila belum lengkap diisi. */
+export function pejabatDari(settings: DocumentData | undefined): Pejabat | null {
+  const p = settings?.pejabat;
+  const nama = typeof p?.nama === 'string' ? p.nama.trim() : '';
+  if (!nama) return null;
+  return {
+    nama,
+    nip: typeof p.nip === 'string' ? p.nip.trim() : '',
+    jabatan: typeof p.jabatan === 'string' ? p.jabatan.trim() : '',
+  };
+}
+
+export function tandatanganiPejabat(
+  isi: IsiTte,
+  pejabat: Pejabat,
+  waktu: Date = new Date()
+): TtePejabat {
+  const ditandatanganiAt = waktu.toISOString();
+  return {
+    hash: hitungHashTtePejabat(isi, pejabat, ditandatanganiAt),
+    ditandatanganiAt,
+    oleh: pejabat.nama,
+    nip: pejabat.nip,
+    jabatan: pejabat.jabatan,
+  };
+}
+
+export function ttePejabatMasihUtuh(isi: IsiTte, t: TtePejabat): boolean {
+  const p = { nama: t.oleh, nip: t.nip, jabatan: t.jabatan };
+  return hitungHashTtePejabat(isi, p, t.ditandatanganiAt) === t.hash;
+}
+
+/**
+ * TTE pengawas + pejabat untuk satu kali kirim BA, dengan waktu yang sama.
+ * Bila pejabat belum diatur di Pengaturan, ttePejabat bernilai null.
+ */
+export function tandatanganiBA(
+  isi: IsiTte,
+  oleh: string,
+  pejabat: Pejabat | null,
+  waktu: Date = new Date()
+): { tte: TandaTanganElektronik; ttePejabat: TtePejabat | null } {
+  return {
+    tte: tandatangani(isi, oleh, waktu),
+    ttePejabat: pejabat ? tandatanganiPejabat(isi, pejabat, waktu) : null,
+  };
 }
 
 function bagianBA(id: string, ba: DocumentData) {

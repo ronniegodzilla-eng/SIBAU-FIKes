@@ -26,6 +26,10 @@ export default function DokumenBeritaAcara({
 }) {
   const teks = teksDokumen(dok);
   const pengawas = daftarPengawas(dok);
+  // BA bertanda tangan ketua panitia memakai identitas yang tersimpan saat
+  // ditandatangani, bukan isi Pengaturan saat ini.
+  const tp = dok.ttePejabat;
+  const mengetahui = tp ? { nama: tp.oleh, nip: tp.nip, jabatan: tp.jabatan } : pejabat;
 
   return (
     <article className="bg-white px-5 py-6 font-serif text-[13px] leading-relaxed text-[#1a1a1a] shadow-[0_4px_20px_rgba(15,60,30,0.08)] sm:px-[34px] sm:py-[30px]">
@@ -87,28 +91,11 @@ export default function DokumenBeritaAcara({
 
       <div className="mt-6 flex flex-col items-center gap-8 text-center sm:flex-row sm:items-start sm:justify-between">
         <div className="w-full max-w-[260px]">
-          <div>&nbsp;</div>
+          <div className="hidden sm:block">&nbsp;</div>
+          <div className="hidden sm:block">&nbsp;</div>
           <div className="font-semibold">Pengawas Ujian,</div>
           {dok.tte ? (
-            <>
-              <div className="mt-2 flex justify-center">
-                {qr ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={qr}
-                    alt={`QR verifikasi berita acara ${dok.nomorBA}`}
-                    className="h-[96px] w-[96px]"
-                  />
-                ) : (
-                  <div className="h-[96px] w-[96px]" />
-                )}
-              </div>
-              <div className="mt-1 font-sans text-[10px] leading-snug text-[#555]">
-                Ditandatangani secara elektronik
-                <br />
-                {formatTanggalJamWIB(dok.tte.ditandatanganiAt)}
-              </div>
-            </>
+            <BlokTte qr={qr} nomorBA={dok.nomorBA} waktu={dok.tte.ditandatanganiAt} />
           ) : (
             <div className="h-[110px]" />
           )}
@@ -127,20 +114,28 @@ export default function DokumenBeritaAcara({
           <div className="font-semibold">
             Mengetahui,
             <br />
-            {pejabat?.jabatan || '—'}
+            {mengetahui?.jabatan || '—'}
           </div>
-          <div className="h-[86px]" />
-          <div className="font-bold underline underline-offset-2">{pejabat?.nama || '—'}</div>
-          {pejabat?.nip && <div className="text-[12px]">NIP. {pejabat.nip}</div>}
+          {tp ? (
+            <BlokTte qr={qr} nomorBA={dok.nomorBA} waktu={tp.ditandatanganiAt} />
+          ) : (
+            <div className="h-[86px]" />
+          )}
+          <div className="mt-1.5 font-bold underline underline-offset-2">
+            {mengetahui?.nama || '—'}
+          </div>
+          {mengetahui?.nip && <div className="text-[12px]">NIP. {mengetahui.nip}</div>}
         </div>
       </div>
 
       <div className="mt-6 border-t border-[#ccc] pt-2.5 font-sans text-[10.5px] leading-relaxed text-[#666]">
         {dok.tte ? (
           <>
-            Bagian pengawas pada dokumen ini ditandatangani secara elektronik melalui SIBAU FIKes
-            UIS dan sah tanpa tanda tangan basah. Keaslian dapat diperiksa dengan memindai kode QR
-            atau membuka{' '}
+            {tp
+              ? `Dokumen ini ditandatangani secara elektronik oleh pengawas ujian dan ${tp.jabatan || 'pejabat yang mengetahui'}`
+              : 'Bagian pengawas pada dokumen ini ditandatangani secara elektronik'}{' '}
+            melalui SIBAU FIKes UIS dan sah tanpa tanda tangan basah. Keaslian dapat diperiksa
+            dengan memindai kode QR atau membuka{' '}
             {urlVerifikasi ? (
               <a href={urlVerifikasi} className="break-all text-primary-700 underline">
                 {urlVerifikasi}
@@ -175,6 +170,26 @@ export default function DokumenBeritaAcara({
         </section>
       )}
     </article>
+  );
+}
+
+function BlokTte({ qr, nomorBA, waktu }: { qr: string; nomorBA: string; waktu: string }) {
+  return (
+    <>
+      <div className="mt-2 flex justify-center">
+        {qr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={qr} alt={`QR verifikasi berita acara ${nomorBA}`} className="h-[96px] w-[96px]" />
+        ) : (
+          <div className="h-[96px] w-[96px]" />
+        )}
+      </div>
+      <div className="mt-1 font-sans text-[10px] leading-snug text-[#555]">
+        Ditandatangani secara elektronik
+        <br />
+        {formatTanggalJamWIB(waktu)}
+      </div>
+    </>
   );
 }
 

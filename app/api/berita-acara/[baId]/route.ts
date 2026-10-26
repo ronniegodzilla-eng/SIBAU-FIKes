@@ -5,7 +5,7 @@ import { ambilIpDariRequest } from '@/lib/verify-admin';
 import { tulisAuditLogDalamTransaksi } from '@/lib/audit';
 import { validasiFormBA } from '@/lib/validasi';
 import { periksaRateLimit } from '@/lib/rate-limit';
-import { tandatangani, isiTteReguler } from '@/lib/tte';
+import { tandatanganiBA, isiTteReguler, pejabatDari } from '@/lib/tte';
 
 /**
  * PUT: pengisian ulang berita acara yang kuncinya sudah dibuka admin (F-09).
@@ -52,6 +52,7 @@ export async function PUT(
       if (!jadwalSnap.exists) {
         throw new Error('NOT_FOUND');
       }
+      const settingsSnap = await trx.get(adminDb.collection('settings').doc('app'));
 
       const pesertaTerdaftar = Number(body.pesertaTerdaftar);
       const pesertaHadir = Number(body.pesertaHadir);
@@ -75,13 +76,17 @@ export async function PUT(
         namaPengisi: body.namaPengisi.trim(),
       };
 
-      // Isi berubah → ditandatangani ulang; TTE lama tidak lagi mewakili isinya.
+      // Isi berubah → ditandatangani ulang (pengawas & pejabat); TTE lama
+      // tidak lagi mewakili isinya.
+      const { tte, ttePejabat } = tandatanganiBA(
+        isiTteReguler(params.baId, { ...baLama, ...dataBaru }, jadwalSnap.data()!),
+        dataBaru.namaPengisi,
+        pejabatDari(settingsSnap.data())
+      );
       trx.update(baRef, {
         ...dataBaru,
-        tte: tandatangani(
-          isiTteReguler(params.baId, { ...baLama, ...dataBaru }, jadwalSnap.data()!),
-          dataBaru.namaPengisi
-        ),
+        tte,
+        ttePejabat: ttePejabat ?? FieldValue.delete(),
         locked: true,
         updatedAt: FieldValue.serverTimestamp(),
       });

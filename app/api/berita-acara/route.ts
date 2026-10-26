@@ -7,7 +7,7 @@ import { validasiFormBA } from '@/lib/validasi';
 import { formatNomorBA, FORMAT_NOMOR_BA_DEFAULT } from '@/lib/nomor-ba';
 import { hariIniStrWIB } from '@/lib/tanggal';
 import { periksaRateLimit } from '@/lib/rate-limit';
-import { tandatangani, isiTteReguler } from '@/lib/tte';
+import { tandatanganiBA, isiTteReguler, pejabatDari } from '@/lib/tte';
 
 export async function POST(req: NextRequest) {
   try {
@@ -97,9 +97,15 @@ export async function POST(req: NextRequest) {
         namaPengisi: body.namaPengisi.trim(),
       };
 
+      const { tte, ttePejabat } = tandatanganiBA(
+        isiTteReguler(baRef.id, dataBA, jadwal),
+        dataBA.namaPengisi,
+        pejabatDari(settingsSnap.data())
+      );
       trx.set(baRef, {
         ...dataBA,
-        tte: tandatangani(isiTteReguler(baRef.id, dataBA, jadwal), dataBA.namaPengisi),
+        tte,
+        ...(ttePejabat ? { ttePejabat } : {}),
         locked: true,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),

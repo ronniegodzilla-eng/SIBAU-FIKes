@@ -102,6 +102,21 @@ const styles = StyleSheet.create({
   fotoItem: { width: 240, height: 180, objectFit: 'cover', borderWidth: 0.6, borderColor: '#ccc' },
 });
 
+function BlokTte({ qr, waktu }: { qr: string; waktu: string }) {
+  return (
+    <>
+      {qr ? (
+        // eslint-disable-next-line jsx-a11y/alt-text -- Image dari @react-pdf/renderer
+        <Image src={qr} style={styles.ttdQr} />
+      ) : (
+        <View style={styles.ttdQr} />
+      )}
+      <Text style={[styles.ttdKetTte, { marginTop: 3 }]}>Ditandatangani secara elektronik</Text>
+      <Text style={styles.ttdKetTte}>{formatTanggalJamWIB(waktu)}</Text>
+    </>
+  );
+}
+
 function Baris({ k, v }: { k: string; v: string }) {
   return (
     <View style={styles.baris}>
@@ -136,6 +151,8 @@ export default function BeritaAcaraPDF({
 }) {
   const teks = teksDokumen(dok);
   const pengawas = daftarPengawas(dok);
+  const tp = dok.ttePejabat;
+  const mengetahui = tp ? { nama: tp.oleh, nip: tp.nip, jabatan: tp.jabatan } : pejabat;
 
   return (
     <Document title={`Berita Acara ${dok.nomorBA}`}>
@@ -207,22 +224,10 @@ export default function BeritaAcaraPDF({
         <View style={styles.ttdBlok} wrap={false}>
           <View style={styles.ttdKolom}>
             <Text> </Text>
+            <Text> </Text>
             <Text style={styles.tebal}>Pengawas Ujian,</Text>
             {dok.tte ? (
-              <>
-                {qr ? (
-                  // eslint-disable-next-line jsx-a11y/alt-text -- Image dari @react-pdf/renderer
-                  <Image src={qr} style={styles.ttdQr} />
-                ) : (
-                  <View style={styles.ttdQr} />
-                )}
-                <Text style={[styles.ttdKetTte, { marginTop: 3 }]}>
-                  Ditandatangani secara elektronik
-                </Text>
-                <Text style={styles.ttdKetTte}>
-                  {formatTanggalJamWIB(dok.tte.ditandatanganiAt)}
-                </Text>
-              </>
+              <BlokTte qr={qr} waktu={dok.tte.ditandatanganiAt} />
             ) : (
               <View style={styles.ttdRuangBasah} />
             )}
@@ -237,18 +242,22 @@ export default function BeritaAcaraPDF({
           <View style={styles.ttdKolom}>
             <Text>Batam, {formatTanggalTanpaHari(dok.tanggalStr)}</Text>
             <Text style={styles.tebal}>Mengetahui,</Text>
-            <Text style={styles.tebal}>{pejabat?.jabatan || '—'}</Text>
-            <View style={styles.ttdRuangBasah} />
-            <Text style={styles.ttdNamaPejabat}>{pejabat?.nama || '—'}</Text>
-            {pejabat?.nip ? <Text>NIP. {pejabat.nip}</Text> : null}
+            <Text style={styles.tebal}>{mengetahui?.jabatan || '—'}</Text>
+            {tp ? <BlokTte qr={qr} waktu={tp.ditandatanganiAt} /> : <View style={styles.ttdRuangBasah} />}
+            <Text style={[styles.ttdNamaPejabat, tp ? { marginTop: 4 } : {}]}>
+              {mengetahui?.nama || '—'}
+            </Text>
+            {mengetahui?.nip ? <Text>NIP. {mengetahui.nip}</Text> : null}
           </View>
         </View>
 
         <View style={styles.catatan} fixed>
           {dok.tte ? (
             <Text>
-              Bagian pengawas pada dokumen ini ditandatangani secara elektronik melalui SIBAU FIKes
-              UIS dan sah tanpa tanda tangan basah. Keaslian dapat diperiksa dengan memindai kode
+              {tp
+                ? `Dokumen ini ditandatangani secara elektronik oleh pengawas ujian dan ${tp.jabatan || 'pejabat yang mengetahui'}`
+                : 'Bagian pengawas pada dokumen ini ditandatangani secara elektronik'}{' '}
+              melalui SIBAU FIKes UIS dan sah tanpa tanda tangan basah. Keaslian dapat diperiksa dengan memindai kode
               QR atau membuka {urlVerifikasi || 'halaman verifikasi SIBAU'}. Kode verifikasi:{' '}
               <Text style={styles.catatanKode}>{kodeVerifikasi(dok.tte.hash)}</Text>
             </Text>

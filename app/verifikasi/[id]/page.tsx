@@ -5,9 +5,15 @@ import { adminDb } from '@/lib/firebase-admin';
 import KopSuratBA from '@/components/ba/KopSuratBA';
 import { kopDari } from '@/lib/kop';
 import { kodeVerifikasi } from '@/lib/kode-tte';
-import { isiTteReguler, isiTteSusulan, tteMasihUtuh, type IsiTte } from '@/lib/tte';
+import {
+  isiTteReguler,
+  isiTteSusulan,
+  tteMasihUtuh,
+  ttePejabatMasihUtuh,
+  type IsiTte,
+} from '@/lib/tte';
 import { formatTanggalIndonesia, formatTanggalJamWIB } from '@/lib/tanggal';
-import type { SettingsApp, TandaTanganElektronik } from '@/lib/types';
+import type { SettingsApp, TandaTanganElektronik, TtePejabat } from '@/lib/types';
 
 export const runtime = 'nodejs';
 // Halaman ini dibuka dari QR pada lembar yang beredar; statusnya harus status
@@ -102,7 +108,15 @@ export default async function VerifikasiBeritaAcara({ params }: { params: { id: 
   const kop = kopDari(settingsSnap.exists ? (settingsSnap.data() as SettingsApp) : null);
 
   const tte = (hasil?.data.tte as TandaTanganElektronik | undefined) ?? null;
-  const utuh = Boolean(hasil?.isi && tte && tteMasihUtuh(hasil.isi, tte));
+  const ttePejabat = (hasil?.data.ttePejabat as TtePejabat | undefined) ?? null;
+  // Kedua tanda tangan harus cocok; TTE pejabat yang ada tetapi rusak sama
+  // seriusnya dengan TTE pengawas yang rusak.
+  const utuh = Boolean(
+    hasil?.isi &&
+      tte &&
+      tteMasihUtuh(hasil.isi, tte) &&
+      (!ttePejabat || ttePejabatMasihUtuh(hasil.isi, ttePejabat))
+  );
   const dalamKoreksi = hasil?.data.locked === false;
   const d = hasil?.data;
 
@@ -172,8 +186,18 @@ export default async function VerifikasiBeritaAcara({ params }: { params: { id: 
               v={`${d.pesertaHadir ?? 0} hadir dari ${d.pesertaTerdaftar ?? 0} terdaftar`}
             />
             <Baris
-              k="Ditandatangani elektronik"
-              v={`${formatTanggalJamWIB(tte.ditandatanganiAt)} oleh ${tte.oleh}`}
+              k="Ditandatangani pengawas"
+              v={`${tte.oleh} — ${formatTanggalJamWIB(tte.ditandatanganiAt)}`}
+            />
+            <Baris
+              k="Mengetahui"
+              v={
+                ttePejabat
+                  ? `${ttePejabat.oleh}${ttePejabat.nip ? ` (NIP. ${ttePejabat.nip})` : ''}${
+                      ttePejabat.jabatan ? `, ${ttePejabat.jabatan}` : ''
+                    } — ditandatangani elektronik ${formatTanggalJamWIB(ttePejabat.ditandatanganiAt)}`
+                  : 'Belum ditandatangani elektronik (mengikuti tanda tangan basah)'
+              }
             />
             <Baris k="Kode verifikasi" v={kodeVerifikasi(tte.hash)} mono />
           </dl>

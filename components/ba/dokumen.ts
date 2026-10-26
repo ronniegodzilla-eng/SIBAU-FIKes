@@ -10,6 +10,7 @@ import type {
   JadwalUjian,
   Periode,
   TandaTanganElektronik,
+  TtePejabat,
 } from '@/lib/types';
 
 export interface DokumenBA {
@@ -42,6 +43,7 @@ export interface DokumenBA {
   namaPengisi: string;
   locked: boolean;
   tte: TandaTanganElektronik | null;
+  ttePejabat: TtePejabat | null;
 }
 
 type BagianBA = Pick<
@@ -61,6 +63,7 @@ type BagianBA = Pick<
   | 'namaPengisi'
   | 'locked'
   | 'tte'
+  | 'ttePejabat'
 >;
 
 function bagianBA(ba: BagianBA) {
@@ -80,6 +83,7 @@ function bagianBA(ba: BagianBA) {
     namaPengisi: ba.namaPengisi,
     locked: ba.locked,
     tte: ba.tte ?? null,
+    ttePejabat: ba.ttePejabat ?? null,
   };
 }
 

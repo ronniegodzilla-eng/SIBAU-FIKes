@@ -35,6 +35,14 @@ export interface TandaTanganElektronik {
   oleh: string;
 }
 
+/** TTE pejabat yang "Mengetahui" (ketua panitia). Identitas pejabat disalin
+ *  saat menandatangani supaya BA lama tetap menyebut pejabat yang berlaku
+ *  ketika itu, meskipun Pengaturan kemudian diganti. `oleh` = nama pejabat. */
+export interface TtePejabat extends TandaTanganElektronik {
+  nip: string;
+  jabatan: string;
+}
+
 export interface Periode {
   id: string;
   jenis: JenisPeriode;
@@ -104,6 +112,7 @@ export interface BeritaAcara {
   namaPengisi: string;
   locked: boolean;
   tte?: TandaTanganElektronik;
+  ttePejabat?: TtePejabat;
   createdAt: string;
   updatedAt: string;
 }
@@ -139,6 +148,7 @@ export interface BeritaAcaraSusulan {
   namaPengisi: string;
   locked: boolean;
   tte?: TandaTanganElektronik;
+  ttePejabat?: TtePejabat;
   createdAt: string;
   updatedAt: string;
 }
