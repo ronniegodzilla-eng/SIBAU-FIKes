@@ -16,6 +16,9 @@ import BarisJadwal from '@/components/publik/BarisJadwal';
 import PanelBelumDiisi from '@/components/publik/PanelBelumDiisi';
 import type { JadwalUjian, Periode } from '@/lib/types';
 
+/** Jumlah maksimum jadwal tertunggak dari hari-hari sebelumnya yang dimuat. */
+const BATAS_TERTUNGGAK = 20;
+
 type Kelompok = 'jam' | 'semester' | 'kelas' | 'tidak';
 
 interface GrupJadwal {
@@ -88,6 +91,7 @@ export default function DashboardPage() {
   const [tanggal, setTanggal] = useState(hariIniStrWIB());
   const [jadwalHariItu, setJadwalHariItu] = useState<JadwalUjian[]>([]);
   const [belumDiisi, setBelumDiisi] = useState<JadwalUjian[]>([]);
+  const [hariLaluTerpotong, setHariLaluTerpotong] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterJam, setFilterJam] = useState('');
@@ -127,7 +131,8 @@ export default function DashboardPage() {
       setLoading(true);
       setError('');
       try {
-        const [snapHariIni, snapTertunggak] = await Promise.all([
+        const hariIni = hariIniStrWIB();
+        const [snapHariIni, snapHariLalu, snapBelumHariIni] = await Promise.all([
           getDocs(
             query(
               collection(db, 'jadwal_ujian'),
@@ -136,23 +141,39 @@ export default function DashboardPage() {
               orderBy('jamMulai', 'asc')
             )
           ),
+          // Tertunggak = hari-hari sebelumnya (paling lama dulu, dibatasi) +
+          // jadwal hari ini yang belum diisi. Hari ini diambil terpisah dan
+          // utuh karena urutan jam tidak bisa dijamin dalam satu query terbatas;
+          // panel lalu menyaring yang jam selesainya sudah lewat.
           getDocs(
             query(
               collection(db, 'jadwal_ujian'),
               where('periodeId', '==', periodeAktif!.id),
               where('status', '==', 'belum_diisi'),
-              where('tanggalStr', '<=', hariIniStrWIB()),
+              where('tanggalStr', '<', hariIni),
               orderBy('tanggalStr', 'asc'),
-              limit(20)
+              limit(BATAS_TERTUNGGAK)
+            )
+          ),
+          getDocs(
+            query(
+              collection(db, 'jadwal_ujian'),
+              where('periodeId', '==', periodeAktif!.id),
+              where('status', '==', 'belum_diisi'),
+              where('tanggalStr', '==', hariIni)
             )
           ),
         ]);
         setJadwalHariItu(
           snapHariIni.docs.map((d) => ({ id: d.id, ...d.data() }) as unknown as JadwalUjian)
         );
-        setBelumDiisi(
-          snapTertunggak.docs.map((d) => ({ id: d.id, ...d.data() }) as unknown as JadwalUjian)
-        );
+        const keJadwal = (d: { id: string; data: () => object }) =>
+          ({ id: d.id, ...d.data() }) as unknown as JadwalUjian;
+        setBelumDiisi([
+          ...snapHariLalu.docs.map(keJadwal),
+          ...snapBelumHariIni.docs.map(keJadwal).sort((a, b) => a.jamSelesai.localeCompare(b.jamSelesai)),
+        ]);
+        setHariLaluTerpotong(snapHariLalu.size >= BATAS_TERTUNGGAK);
       } catch {
         setError('Gagal memuat jadwal ujian. Periksa koneksi internet Anda.');
       } finally {
@@ -324,7 +345,7 @@ export default function DashboardPage() {
 
         {periodeAktif && (
           <>
-            <PanelBelumDiisi daftar={belumDiisi} />
+            <PanelBelumDiisi daftar={belumDiisi} terpotong={hariLaluTerpotong} batas={BATAS_TERTUNGGAK} />
 
             <div className="mb-[11px] flex items-center justify-between">
               <div className="text-[15px] font-extrabold text-ink">{todayHeaderLabel}</div>
