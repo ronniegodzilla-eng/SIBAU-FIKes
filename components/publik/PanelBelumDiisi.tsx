@@ -12,16 +12,7 @@ import type { JadwalUjian } from '@/lib/types';
 
 const KUNCI_TUTUP = 'sibau:panel-belum-diisi-tutup';
 
-export default function PanelBelumDiisi({
-  daftar,
-  terpotong,
-  batas,
-}: {
-  daftar: JadwalUjian[];
-  /** true bila jadwal tertunggak hari-hari sebelumnya lebih banyak dari `batas`. */
-  terpotong: boolean;
-  batas: number;
-}) {
+export default function PanelBelumDiisi({ daftar }: { daftar: JadwalUjian[] }) {
   const [terbuka, setTerbuka] = useState(true);
   // Ujian hari ini masuk daftar begitu jam selesainya lewat — hitung ulang tiap menit.
   const [, setDetak] = useState(0);
@@ -66,7 +57,7 @@ export default function PanelBelumDiisi({
       >
         <span className="text-[13px] font-extrabold text-danger-strong">
           ⚠ {tertunggak.length}
-          {terpotong ? '+' : ''} ujian belum diisi berita acaranya
+          {' '}ujian belum diisi berita acaranya
         </span>
         <span className="shrink-0 text-[11.5px] font-bold text-danger-text">
           {terbuka ? 'Sembunyikan ▴' : 'Tampilkan ▾'}
@@ -121,12 +112,6 @@ export default function PanelBelumDiisi({
               </li>
             ))}
           </ul>
-          {terpotong && (
-            <p className="border-t border-danger-border px-4 py-1.5 text-[11px] font-medium text-danger-text sm:px-[18px]">
-              Dari hari-hari sebelumnya hanya {batas} jadwal yang paling lama tertunggak yang
-              ditampilkan.
-            </p>
-          )}
         </>
       )}
     </section>
