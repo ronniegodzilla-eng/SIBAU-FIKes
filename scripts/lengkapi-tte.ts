@@ -15,15 +15,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type DocumentData, type Timestamp } from 'firebase-admin/firestore';
-import {
-  isiTteReguler,
-  isiTteSusulan,
-  pejabatDari,
-  tandatangani,
-  tandatanganiPejabat,
-  tteMasihUtuh,
-  type IsiTte,
-} from '../lib/tte';
+import { isiTteReguler, isiTteSusulan, lengkapiTte, pejabatDari, type IsiTte } from '../lib/tte';
 
 const tulis = process.argv.includes('--tulis');
 const semuaPeriode = process.argv.includes('--semua-periode');
@@ -79,15 +71,14 @@ async function main() {
     if (!semuaPeriode && periodeId !== aktif?.id) return void hitung.periodeLain++;
     if (d.locked === false) return void hitung.terbuka++;
     if (!isi) return void hitung.tanpaJadwal++;
-    if (d.tte && d.ttePejabat) return void hitung.sudahLengkap++;
-    // TTE pengawas yang ada tetapi tidak cocok berarti isi BA sudah berubah;
-    // jangan biarkan pejabat "mengetahui" isi yang tidak ditandatangani pengawas.
-    if (d.tte && !tteMasihUtuh(isi, d.tte)) return void hitung.tteRusak++;
-
-    const tte = d.tte ?? tandatangani(isi, String(d.namaPengisi ?? ''), waktuKirim(d));
-    const data: DocumentData = { ttePejabat: tandatanganiPejabat(isi, pejabat!, new Date(tte.ditandatanganiAt)) };
-    if (!d.tte) data.tte = tte;
-    rencana.push({ ref, data, label: `${d.nomorBA}${d.tte ? '' : ' (+TTE pengawas)'}` });
+    const hasil = lengkapiTte(isi, d, pejabat, waktuKirim(d));
+    if (hasil.status === 'lengkap') return void hitung.sudahLengkap++;
+    if (hasil.status === 'rusak') return void hitung.tteRusak++;
+    rencana.push({
+      ref,
+      data: hasil.data,
+      label: `${d.nomorBA}${hasil.data.tte ? ' (+TTE pengawas)' : ''}`,
+    });
   }
 
   for (const doc of baSnap.docs) {

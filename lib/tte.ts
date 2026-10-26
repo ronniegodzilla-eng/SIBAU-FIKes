@@ -205,3 +205,34 @@ export function isiTteSusulan(id: string, s: DocumentData): IsiTte {
     ruangan: (s.ruangan as string | null) ?? null,
   };
 }
+
+export type HasilLengkapiTte =
+  | { status: 'lengkap' }
+  | { status: 'rusak' }
+  | { status: 'dilengkapi'; data: { tte?: TandaTanganElektronik; ttePejabat?: TtePejabat } };
+
+/**
+ * Lengkapi TTE BA yang isinya masih seperti saat dikirim pengawas (dipakai
+ * saat admin mengunci kembali BA dan oleh scripts/lengkapi-tte.ts).
+ * - TTE pengawas yang belum ada dibuat dengan waktu kirim BA.
+ * - TTE pejabat yang belum ada dibuat dengan waktu yang sama.
+ * - TTE pengawas yang ada tetapi tidak cocok → 'rusak': isi sudah berubah
+ *   sejak ditandatangani, jadi tidak boleh "disahkan" tanpa pengawas
+ *   mengirim ulang.
+ */
+export function lengkapiTte(
+  isi: IsiTte,
+  ba: DocumentData,
+  pejabat: Pejabat | null,
+  waktuKirim: Date
+): HasilLengkapiTte {
+  const lama = ba.tte as TandaTanganElektronik | undefined;
+  if (lama && !tteMasihUtuh(isi, lama)) return { status: 'rusak' };
+  const tte = lama ?? tandatangani(isi, String(ba.namaPengisi ?? ''), waktuKirim);
+  const data: { tte?: TandaTanganElektronik; ttePejabat?: TtePejabat } = {};
+  if (!lama) data.tte = tte;
+  if (!ba.ttePejabat && pejabat) {
+    data.ttePejabat = tandatanganiPejabat(isi, pejabat, new Date(tte.ditandatanganiAt));
+  }
+  return Object.keys(data).length ? { status: 'dilengkapi', data } : { status: 'lengkap' };
+}

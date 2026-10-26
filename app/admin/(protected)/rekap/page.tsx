@@ -9,6 +9,8 @@ import { formatTanggalSingkat } from '@/lib/tanggal';
 import { DAFTAR_PRODI } from '@/lib/prodi';
 import type { BeritaAcaraSusulan, JadwalUjian, Periode } from '@/lib/types';
 
+type StatusTteKunci = 'lengkap' | 'dilengkapi' | 'rusak';
+
 interface PeriodeRingkas extends Pick<Periode, 'id' | 'jenis' | 'semester' | 'tahunAkademik' | 'aktif'> {}
 
 export default function AdminRekapPage() {
@@ -161,6 +163,70 @@ export default function AdminRekapPage() {
     XLSX.utils.book_append_sheet(wb, ws, 'Ujian Susulan');
     XLSX.writeFile(wb, `rekap-ujian-susulan-${periodeId}.xlsx`);
     showToast('Rekap ujian susulan berhasil diekspor ke Excel.', 'success');
+  }
+
+  /** Pesan hasil kunci kembali, sesuai apa yang terjadi pada TTE-nya. */
+  function pesanKunci(tte: StatusTteKunci, nama: string) {
+    if (tte === 'rusak') {
+      showToast(
+        `${nama} dikunci, tetapi isinya sudah berubah sejak ditandatangani sehingga TTE tidak diterbitkan. Buka kunci dan minta pengawas mengirim ulang agar BA ditandatangani kembali.`,
+        'error'
+      );
+    } else {
+      showToast(
+        tte === 'dilengkapi'
+          ? `${nama} dikunci kembali dan tanda tangan elektroniknya dilengkapi.`
+          : `${nama} dikunci kembali.`,
+        'success'
+      );
+    }
+  }
+
+  async function kunciKembaliSusulan(s: BeritaAcaraSusulan) {
+    const ok = await confirm(
+      `Kunci kembali berita acara susulan ${s.namaMK} tanpa menunggu koreksi dari pengawas?`
+    );
+    if (!ok) return;
+    setMemprosesSusulan(s.id);
+    try {
+      const hasil = await adminFetch<{ tte: StatusTteKunci }>(
+        `/api/admin/berita-acara-susulan/${s.id}`,
+        { method: 'PATCH', body: JSON.stringify({ aksi: 'lock' }) }
+      );
+      pesanKunci(hasil.tte, `Berita acara susulan ${s.namaMK}`);
+      await muatSusulan(periodeId);
+    } catch (err) {
+      showToast(
+        err instanceof AdminFetchError ? err.message : 'Gagal mengunci berita acara susulan.',
+        'error'
+      );
+    } finally {
+      setMemprosesSusulan(null);
+    }
+  }
+
+  async function kunciKembali(j: JadwalUjian) {
+    if (!j.beritaAcaraId) return;
+    const ok = await confirm(
+      `Kunci kembali berita acara ${j.namaMK} tanpa menunggu koreksi dari pengawas?`
+    );
+    if (!ok) return;
+    setMemproses(j.id);
+    try {
+      const hasil = await adminFetch<{ tte: StatusTteKunci }>(
+        `/api/admin/berita-acara/${j.beritaAcaraId}`,
+        { method: 'PATCH', body: JSON.stringify({ aksi: 'lock' }) }
+      );
+      pesanKunci(hasil.tte, `Berita acara ${j.namaMK}`);
+      await muatJadwal(periodeId);
+    } catch (err) {
+      showToast(
+        err instanceof AdminFetchError ? err.message : 'Gagal mengunci berita acara.',
+        'error'
+      );
+    } finally {
+      setMemproses(null);
+    }
   }
 
   async function bukaKunciSusulan(s: BeritaAcaraSusulan) {
@@ -405,13 +471,23 @@ export default function AdminRekapPage() {
                         >
                           Lihat
                         </a>
-                        <button
-                          onClick={() => bukaKunci(j)}
-                          disabled={memproses === j.id}
-                          className="min-h-[30px] rounded-lg border border-warn-border px-2.5 py-1 text-[11px] font-bold text-warn-text hover:bg-warn-bg disabled:opacity-50"
-                        >
-                          Unlock
-                        </button>
+                        {j.baLocked === false ? (
+                          <button
+                            onClick={() => kunciKembali(j)}
+                            disabled={memproses === j.id}
+                            className="min-h-[30px] rounded-lg border border-primary-600 px-2.5 py-1 text-[11px] font-bold text-primary-600 hover:bg-primary-50 disabled:opacity-50"
+                          >
+                            🔒 Kunci
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => bukaKunci(j)}
+                            disabled={memproses === j.id}
+                            className="min-h-[30px] rounded-lg border border-warn-border px-2.5 py-1 text-[11px] font-bold text-warn-text hover:bg-warn-bg disabled:opacity-50"
+                          >
+                            Unlock
+                          </button>
+                        )}
                         <button
                           onClick={() => hapusBA(j)}
                           disabled={memproses === j.id}
@@ -521,13 +597,23 @@ export default function AdminRekapPage() {
                       >
                         Lihat
                       </a>
-                      <button
-                        onClick={() => bukaKunciSusulan(s)}
-                        disabled={memprosesSusulan === s.id}
-                        className="min-h-[30px] rounded-lg border border-warn-border px-2.5 py-1 text-[11px] font-bold text-warn-text hover:bg-warn-bg disabled:opacity-50"
-                      >
-                        Unlock
-                      </button>
+                      {s.locked === false ? (
+                        <button
+                          onClick={() => kunciKembaliSusulan(s)}
+                          disabled={memprosesSusulan === s.id}
+                          className="min-h-[30px] rounded-lg border border-primary-600 px-2.5 py-1 text-[11px] font-bold text-primary-600 hover:bg-primary-50 disabled:opacity-50"
+                        >
+                          🔒 Kunci
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => bukaKunciSusulan(s)}
+                          disabled={memprosesSusulan === s.id}
+                          className="min-h-[30px] rounded-lg border border-warn-border px-2.5 py-1 text-[11px] font-bold text-warn-text hover:bg-warn-bg disabled:opacity-50"
+                        >
+                          Unlock
+                        </button>
+                      )}
                       <button
                         onClick={() => hapusSusulan(s)}
                         disabled={memprosesSusulan === s.id}
