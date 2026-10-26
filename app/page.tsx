@@ -14,6 +14,7 @@ import { db } from '@/lib/firebase-client';
 import { hariIniStrWIB, formatTanggalIndonesia, ujianSudahLewat } from '@/lib/tanggal';
 import BarisJadwal from '@/components/publik/BarisJadwal';
 import PanelBelumDiisi from '@/components/publik/PanelBelumDiisi';
+import PanelSudahDiisi from '@/components/publik/PanelSudahDiisi';
 import type { JadwalUjian, Periode } from '@/lib/types';
 
 type Kelompok = 'jam' | 'semester' | 'kelas' | 'tidak';
@@ -180,32 +181,43 @@ export default function DashboardPage() {
     muatJadwal();
   }, [periodeAktif, tanggal]);
 
-  // Ujian yang sudah lewat dan belum diisi pindah ke panel "Belum Diisi";
-  // jangan tampil dua kali. Yang sudah terisi tetap di sini (Lihat/Cetak PDF).
-  // Dihitung ulang tiap menit supaya ujian berpindah begitu jam selesainya lewat.
+  // Ujian yang sudah selesai pindah dari daftar ke panel: yang belum diisi ke
+  // panel "Belum Diisi", yang sudah diisi ke panel "Sudah Diisi". Daftar
+  // hanya berisi ujian yang belum selesai. Dihitung ulang tiap menit supaya
+  // ujian berpindah begitu jam selesainya lewat.
   const [, setDetak] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setDetak((n) => n + 1), 60_000);
     return () => clearInterval(t);
   }, []);
-  const jadwalTampil = jadwalHariItu.filter(
-    (j) => !(j.status === 'belum_diisi' && ujianSudahLewat(j))
+
+  const daftarJam = useMemo(
+    () => Array.from(new Set(jadwalHariItu.map((j) => j.jamMulai))).sort(),
+    [jadwalHariItu]
   );
-  const jumlahPindahKePanel = jadwalHariItu.length - jadwalTampil.length;
+  const daftarProdi = useMemo(
+    () => Array.from(new Set(jadwalHariItu.map((j) => j.prodi))).sort(),
+    [jadwalHariItu]
+  );
 
-  const daftarJam = Array.from(new Set(jadwalTampil.map((j) => j.jamMulai))).sort();
-  const daftarProdi = Array.from(new Set(jadwalTampil.map((j) => j.prodi))).sort();
-
-  const jadwalTersaring = jadwalTampil.filter((j) => {
+  // Filter sesi/prodi/cari berlaku untuk daftar dan panel "Sudah Diisi"
+  // (keduanya berisi ujian tanggal terpilih); panel "Belum Diisi" lintas hari.
+  const cocokFilter = (j: JadwalUjian) => {
     if (filterJam && j.jamMulai !== filterJam) return false;
     if (filterProdi && j.prodi !== filterProdi) return false;
     if (cari) {
       const q = cari.toLowerCase();
-      const gabungan = `${j.namaMK} ${j.dosenPengajar}`.toLowerCase();
-      if (!gabungan.includes(q)) return false;
+      if (!`${j.namaMK} ${j.dosenPengajar}`.toLowerCase().includes(q)) return false;
     }
     return true;
-  });
+  };
+  const jadwalTersaring = jadwalHariItu.filter((j) => !ujianSudahLewat(j) && cocokFilter(j));
+  const sudahDiisiTersaring = jadwalHariItu.filter(cocokFilter);
+  const rincian = {
+    total: jadwalHariItu.length,
+    selesaiTerisi: jadwalHariItu.filter((j) => ujianSudahLewat(j) && j.status === 'terisi').length,
+    selesaiBelum: jadwalHariItu.filter((j) => ujianSudahLewat(j) && j.status !== 'terisi').length,
+  };
 
   const grupJadwal = useMemo(
     () => kelompokkanJadwal(jadwalTersaring, kelompok),
@@ -350,17 +362,26 @@ export default function DashboardPage() {
         {periodeAktif && (
           <>
             <PanelBelumDiisi daftar={belumDiisi} />
+            <PanelSudahDiisi
+              daftar={sudahDiisiTersaring}
+              labelTanggal={
+                tanggal === hariIniStrWIB() ? 'hari ini' : `tanggal ${formatTanggalIndonesia(tanggal)}`
+              }
+            />
 
             <div className="mb-[11px] flex items-center justify-between">
               <div className="text-[15px] font-extrabold text-ink">{todayHeaderLabel}</div>
               <div className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-600">
                 {jadwalTersaring.length} ujian
+                {rincian.selesaiTerisi + rincian.selesaiBelum > 0 ? ' belum selesai' : ''}
               </div>
             </div>
-            {jumlahPindahKePanel > 0 && !loading && (
+            {!loading && rincian.selesaiTerisi + rincian.selesaiBelum > 0 && (
               <p className="-mt-1.5 mb-2.5 px-1 text-[11.5px] font-medium text-faint">
-                {jumlahPindahKePanel} ujian yang sudah lewat dan belum diisi berita acaranya
-                ditampilkan di panel &quot;belum diisi&quot; di atas.
+                Total {rincian.total} ujian pada tanggal ini. Yang sudah selesai dipindah ke panel
+                di atas: {rincian.selesaiTerisi} sudah diisi berita acaranya
+                {rincian.selesaiBelum > 0 ? `, ${rincian.selesaiBelum} belum diisi` : ''}. Daftar di
+                bawah berisi ujian yang belum selesai.
               </p>
             )}
 
@@ -368,7 +389,9 @@ export default function DashboardPage() {
               <p className="text-sm text-faint">Memuat jadwal...</p>
             ) : jadwalTersaring.length === 0 ? (
               <p className="rounded-2xl bg-white p-[30px] text-center text-[13.5px] font-semibold text-faint">
-                Tidak ada jadwal ujian untuk filter ini.
+                {jadwalHariItu.length > 0 && rincian.selesaiTerisi + rincian.selesaiBelum === jadwalHariItu.length
+                  ? 'Semua ujian pada tanggal ini sudah selesai — lihat panel di atas.'
+                  : 'Tidak ada jadwal ujian untuk filter ini.'}
               </p>
             ) : (
               <div className="flex flex-col gap-4">
